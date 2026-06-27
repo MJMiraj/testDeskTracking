@@ -1,0 +1,19 @@
+node_modules/
+*.log
+*.tmp
+
+# Electron build outputs (too large for GitHub)
+desktop-app/release/
+desktop-app/dist/
+
+# Local screenshot uploads (now stored on Cloudinary)
+backend/uploads/
+
+# Environment files
+.env
+backend/config/ca.pem
+freeServerConfiguration.txt
+
+# OS files
+.DS_Store
+Thumbs.db
