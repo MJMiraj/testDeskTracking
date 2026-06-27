@@ -11,7 +11,6 @@ backend/uploads/
 
 # Environment files
 .env
-backend/config/ca.pem
 freeServerConfiguration.txt
 
 # OS files
