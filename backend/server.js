@@ -61,21 +61,21 @@ app.use('/api/time', timeRoutes);
 app.use('/api/tracking', trackingRoutes);
 app.use('/api/leave', leaveRoutes); // Leave API
 
-// Global Error Handler
-app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(err.status || 500).json({ success: false, message: err.message || 'Server Error' });
-});
-
 // Serve frontend in production
-app.use(express.static(path.join(__dirname, '../frontend/dist')));
+app.use(express.static(path.join(__dirname, 'public')));
 app.use((req, res, next) => {
     // Only send index.html if it's a GET request and not an API call
     if (req.method === 'GET' && !req.path.startsWith('/api/')) {
-        res.sendFile(path.join(__dirname, '../frontend/dist', 'index.html'));
+        res.sendFile(path.join(__dirname, 'public', 'index.html'));
     } else {
         next();
     }
+});
+
+// Global Error Handler MUST be last!
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(err.status || 500).json({ success: false, message: err.message || 'Server Error' });
 });
 
 const PORT = 5000;
