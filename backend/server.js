@@ -1,5 +1,6 @@
 require('dotenv').config();
 const express = require('express');
+const path = require('path');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
@@ -64,6 +65,12 @@ app.use('/api/leave', leaveRoutes); // Leave API
 app.use((err, req, res, next) => {
     console.error(err.stack);
     res.status(err.status || 500).json({ success: false, message: err.message || 'Server Error' });
+});
+
+// Serve frontend in production
+app.use(express.static(path.join(__dirname, '../frontend/dist')));
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend/dist', 'index.html'));
 });
 
 const PORT = 5000;
