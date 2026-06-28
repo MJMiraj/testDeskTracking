@@ -6,7 +6,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsToolti
 import axios from 'axios';
 import { io } from 'socket.io-client';
 
-const api = axios.create({ baseURL: 'http://localhost:5000/api' });
+const api = axios.create({ baseURL: 'https://testdesktracking.onrender.com/api' });
 api.interceptors.request.use((config) => {
     const token = localStorage.getItem('token');
     if (token) config.headers.Authorization = `Bearer ${token}`;
@@ -61,7 +61,7 @@ const AuthScreen = () => {
 // ---------------- VIEWS ----------------
 const DashboardView = ({ summary }) => {
     if (!summary) return <div>Loading Live Analytics...</div>;
-    const { todaySeconds, weekSeconds, productivityScore, dailyData, hourlyData, topApps } = summary;
+    const { todaySeconds, weekSeconds, productivityScore, dailyData, hourlyData, timelineData, topApps } = summary;
 
     const APP_COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8b5cf6'];
 
@@ -87,23 +87,42 @@ const DashboardView = ({ summary }) => {
 
             {/* Charts Section */}
             <div className="charts-grid" style={{ marginTop: 30, display: 'flex', gap: 20, flexWrap: 'wrap' }}>
-                <div style={{ ...cardStyle, flex: 2, minWidth: 300, height: 350 }}>
-                    <h4 style={{marginBottom: 20}}>Daily Working Hours Timeline</h4>
-                    <ResponsiveContainer width="100%" height="90%">
-                        <BarChart data={hourlyData}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                            <XAxis dataKey="time" stroke="gray" />
-                            <YAxis stroke="gray" domain={[0, 60]} ticks={[0, 15, 30, 45, 60]} tickFormatter={(v) => v + 'm'} />
-                            <RechartsTooltip 
-                                contentStyle={{background: 'rgba(0,0,0,0.8)', border: 'none', borderRadius: 8, color: '#fff'}} 
-                                formatter={(value, name) => [value + ' min', name]}
-                            />
-                            <Legend />
-                            <Bar dataKey="productive" name="Productive" stackId="a" fill="#00C49F" />
-                            <Bar dataKey="idle" name="Idle" stackId="a" fill="#FFBB28" />
-                            <Bar dataKey="unproductive" name="Unproductive" stackId="a" fill="#FF8042" />
-                        </BarChart>
-                    </ResponsiveContainer>
+                <div style={{ ...cardStyle, flex: 2, minWidth: 300, height: 'auto', maxHeight: 400, overflowY: 'auto' }}>
+                    <h4 style={{marginBottom: 20}}>Daily Working Hours Timeline (Minute-by-Minute)</h4>
+                    
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                        {timelineData && timelineData.filter(h => h.minutes.some(m => m !== 'empty')).map((hourData, i) => (
+                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                <div style={{ width: 50, fontSize: 12, color: 'gray', fontWeight: 'bold' }}>
+                                    {`${hourData.hour.toString().padStart(2, '0')}:00`}
+                                </div>
+                                <div style={{ flex: 1, display: 'flex', height: 24, background: 'rgba(255,255,255,0.02)', borderRadius: 4, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                    {hourData.minutes.map((m, mIdx) => {
+                                        let bg = 'transparent';
+                                        let title = `${hourData.hour.toString().padStart(2, '0')}:${mIdx.toString().padStart(2, '0')} - No Data`;
+                                        
+                                        if (m !== 'empty') {
+                                            if (m.status === 'productive') bg = '#00C49F'; // Green
+                                            else if (m.status === 'idle') bg = 'gray'; // Gray for Ideal/Idle
+                                            else if (m.status === 'unproductive') bg = '#FF8042'; // Orange/Red
+                                            title = `${hourData.hour.toString().padStart(2, '0')}:${mIdx.toString().padStart(2, '0')} - ${m.status.toUpperCase()} (${m.app})`;
+                                        }
+
+                                        return (
+                                            <div 
+                                                key={mIdx} 
+                                                style={{ flex: 1, height: '100%', background: bg, borderRight: '1px solid rgba(0,0,0,0.1)', cursor: 'pointer' }}
+                                                title={title}
+                                            />
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        ))}
+                        {(!timelineData || timelineData.filter(h => h.minutes.some(m => m !== 'empty')).length === 0) && (
+                            <div style={{ color: 'gray', textAlign: 'center', padding: '20px 0' }}>No timeline data recorded yet today.</div>
+                        )}
+                    </div>
                 </div>
 
                 <div style={{ ...cardStyle, flex: 1, minWidth: 300, height: 350 }}>
@@ -135,7 +154,7 @@ const ScreenshotsView = ({ screenshots }) => {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 25, marginTop: 20 }}>
                 {screenshots.map(ss => (
                     <div key={ss.id} style={{ ...cardStyle, padding: 15, transition: '0.3s' }} className="hover-lift">
-                        <img src={`http://localhost:5000${ss.imageUrl}`} alt="Screenshot" style={{ width: '100%', height: 160, objectFit: 'cover', borderRadius: 10, background: '#ccc' }} />
+                        <img src={ss.imageUrl} alt="Screenshot" style={{ width: '100%', height: 160, objectFit: 'cover', borderRadius: 10, background: '#ccc' }} />
                         <div style={{ marginTop: 15, fontSize: 14, lineHeight: '1.5' }}>
                             <div style={{ fontWeight: 'bold', color: 'var(--text-color)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                 {ss.activeWindow}
@@ -298,7 +317,7 @@ const MainApp = () => {
             fetchData();
 
             // Setup WebSocket for REAL-TIME AUTO RELOAD
-            const newSocket = io('http://localhost:5000');
+            const newSocket = io('https://testdesktracking.onrender.com');
             setSocket(newSocket);
             
             newSocket.on('dashboard_update', (data) => {

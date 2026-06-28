@@ -1,7 +1,7 @@
 {
-  "name": "desktop-app",
-  "version": "1.0.4",
-  "description": "DeskTime Pro Electron App",
+  "name": "desktime-pro",
+  "version": "1.0.5",
+  "description": "Native Desktop Tracking App",
   "main": "main.js",
   "scripts": {
     "start": "electron ."

@@ -46,6 +46,11 @@ exports.getSummary = asyncHandler(async (req, res) => {
         unproductive: 0
     }));
 
+    const timelineData = Array.from({ length: 24 }, (_, i) => ({
+        hour: i,
+        minutes: Array(60).fill('empty')
+    }));
+
     screenshots.forEach(ss => {
         let appName = (ss.activeWindow || 'Unknown').split(' - ').pop();
         if (appName.length > 20) appName = appName.substring(0, 20) + '...';
@@ -55,13 +60,29 @@ exports.getSummary = asyncHandler(async (req, res) => {
 
         const lowerApp = appName.toLowerCase();
         // Assuming development/work tools as productive
-        const isProd = lowerApp.includes('code') || lowerApp.includes('chrome') || lowerApp.includes('firefox') || lowerApp.includes('github') || lowerApp.includes('terminal') || lowerApp.includes('laragon');
+        const isProd = lowerApp.includes('code') || lowerApp.includes('phpstorm') || lowerApp.includes('storm') || lowerApp.includes('chrome') || lowerApp.includes('firefox') || lowerApp.includes('github') || lowerApp.includes('terminal') || lowerApp.includes('laragon');
         
         if (isProd && !ss.isIdle) {
             productiveCount++;
         }
 
-        const hourIndex = new Date(ss.createdAt).getHours();
+        const ssDate = new Date(ss.createdAt);
+        const hourIndex = ssDate.getHours();
+        const minuteIndex = ssDate.getMinutes();
+
+        let status = 'unproductive';
+        if (ss.isIdle) {
+            status = 'idle';
+        } else if (isProd) {
+            status = 'productive';
+        }
+
+        // Assign status to the exact minute slot
+        timelineData[hourIndex].minutes[minuteIndex] = {
+            status,
+            app: appName
+        };
+
         if (ss.isIdle) {
             hourlyData[hourIndex].idle += 1;
         } else if (isProd) {
@@ -144,7 +165,7 @@ exports.getSummary = asyncHandler(async (req, res) => {
 
     res.status(200).json({ 
         success: true, 
-        data: { todaySeconds, weekSeconds, dailyData, hourlyData, isTrackingActive, topApps, productivityScore }
+        data: { todaySeconds, weekSeconds, dailyData, hourlyData, timelineData, isTrackingActive, topApps, productivityScore }
     });
 });
 
