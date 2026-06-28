@@ -69,8 +69,13 @@ app.use((err, req, res, next) => {
 
 // Serve frontend in production
 app.use(express.static(path.join(__dirname, '../frontend/dist')));
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/dist', 'index.html'));
+app.use((req, res, next) => {
+    // Only send index.html if it's a GET request and not an API call
+    if (req.method === 'GET' && !req.path.startsWith('/api/')) {
+        res.sendFile(path.join(__dirname, '../frontend/dist', 'index.html'));
+    } else {
+        next();
+    }
 });
 
 const PORT = 5000;
