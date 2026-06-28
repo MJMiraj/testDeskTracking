@@ -86,9 +86,29 @@ const DashboardView = ({ summary }) => {
             </div>
 
             {/* Charts Section */}
-            <div className="charts-grid" style={{ marginTop: 30, display: 'flex', gap: 20, flexWrap: 'wrap' }}>
-                <div style={{ ...cardStyle, flex: 2, minWidth: 300, height: 'auto', maxHeight: 400, overflowY: 'auto' }}>
-                    <h4 style={{marginBottom: 20}}>Daily Working Hours Timeline (Minute-by-Minute)</h4>
+            <div className="charts-grid" style={{ marginTop: 30, display: 'flex', gap: 20, flexWrap: 'wrap', flexDirection: 'column' }}>
+                <div style={{ ...cardStyle, width: '100%', height: 350 }}>
+                    <h4 style={{marginBottom: 20}}>Daily Working Hours Summary</h4>
+                    <ResponsiveContainer width="100%" height="90%">
+                        <BarChart data={hourlyData} barCategoryGap="15%">
+                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                            <XAxis dataKey="time" stroke="gray" tick={{fontSize: 12}} />
+                            <YAxis stroke="gray" domain={[0, 60]} ticks={[0, 15, 30, 45, 60]} tickFormatter={(v) => v + 'm'} tick={{fontSize: 12}} />
+                            <RechartsTooltip 
+                                contentStyle={{background: 'rgba(0,0,0,0.8)', border: 'none', borderRadius: 8, color: '#fff'}} 
+                                formatter={(value, name) => [value + ' min', name]}
+                            />
+                            <Legend />
+                            <Bar dataKey="productive" name="Productive" stackId="a" fill="#52c41a" radius={[0, 0, 0, 0]} />
+                            <Bar dataKey="idle" name="Idle" stackId="a" fill="#cccccc" radius={[0, 0, 0, 0]} />
+                            <Bar dataKey="unproductive" name="Unproductive" stackId="a" fill="#ff4d4f" radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                    </ResponsiveContainer>
+                </div>
+
+                <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
+                    <div style={{ ...cardStyle, flex: 2, minWidth: 300, height: 'auto', maxHeight: 400, overflowY: 'auto' }}>
+                        <h4 style={{marginBottom: 20}}>Minute-by-Minute Timeline</h4>
                     
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                         {timelineData && timelineData.filter(h => h.minutes.some(m => m !== 'empty')).map((hourData, i) => (
@@ -140,6 +160,7 @@ const DashboardView = ({ summary }) => {
                     ) : (
                         <div style={{display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center', color: 'gray'}}>No apps recorded yet</div>
                     )}
+                </div>
                 </div>
             </div>
         </div>
