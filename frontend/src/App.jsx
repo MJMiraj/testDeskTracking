@@ -417,7 +417,7 @@ const DashboardView = ({ summary, fetchSummary }) => {
                 <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
                     <div style={{ ...cardStyle, flex: 2, minWidth: 300, height: 'auto', maxHeight: 400, overflowY: 'auto' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                            <h4 style={{ margin: 0 }}>Productivity Bar (Minute-by-Minute)</h4>
+                            <h4 style={{ margin: 0 }}>Productivity Bar</h4>
                             <span style={{ fontSize: 12, color: 'gray' }}>Click & Drag empty/gray blocks to log offline time</span>
                         </div>
                         
