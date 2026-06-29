@@ -179,6 +179,16 @@ const DashboardView = ({ summary }) => {
                     )}
                 </div>
                 </div>
+                </div>
+
+                {/* Raw JSON Debugging */}
+                <div style={{ ...cardStyle, width: '100%', marginTop: 20 }}>
+                    <h4 style={{marginBottom: 20}}>Raw Query Data (Debug)</h4>
+                    <pre style={{ background: 'rgba(0,0,0,0.3)', padding: 15, borderRadius: 10, overflowX: 'auto', fontSize: 12 }}>
+                        {JSON.stringify(summary, null, 2)}
+                    </pre>
+                </div>
+
             </div>
         </div>
     );
