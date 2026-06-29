@@ -111,7 +111,7 @@ const DashboardView = ({ summary }) => {
                         <h4 style={{marginBottom: 20}}>Minute-by-Minute Timeline</h4>
                     
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                        {timelineData && timelineData.filter(h => h.minutes.some(m => m !== 'empty')).map((hourData, i) => (
+                        {timelineData && timelineData.map((hourData, i) => (
                             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                 <div style={{ width: 50, fontSize: 12, color: 'gray', fontWeight: 'bold' }}>
                                     {`${hourData.hour.toString().padStart(2, '0')}:00`}
@@ -139,8 +139,8 @@ const DashboardView = ({ summary }) => {
                                 </div>
                             </div>
                         ))}
-                        {(!timelineData || timelineData.filter(h => h.minutes.some(m => m !== 'empty')).length === 0) && (
-                            <div style={{ color: 'gray', textAlign: 'center', padding: '20px 0' }}>No timeline data recorded yet today.</div>
+                        {!timelineData && (
+                            <div style={{ color: 'gray', textAlign: 'center', padding: '20px 0' }}>Loading timeline...</div>
                         )}
                     </div>
                 </div>
