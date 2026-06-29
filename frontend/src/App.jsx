@@ -355,10 +355,26 @@ const SettingsView = () => {
 
 // ---------------- ADMIN VIEW ----------------
 const AdminView = () => {
+    const { state } = useContext(AuthContext);
     const [users, setUsers] = useState([]);
-    useEffect(() => {
+    
+    const fetchUsers = () => {
         api.get('/admin/dashboard').then(res => setUsers(res.data.data)).catch(console.error);
+    };
+
+    useEffect(() => {
+        fetchUsers();
     }, []);
+
+    const handleRoleChange = async (userId, newRole) => {
+        try {
+            await api.put(`/admin/users/${userId}/role`, { role: newRole });
+            alert("Role updated successfully!");
+            fetchUsers();
+        } catch (e) {
+            alert(e.response?.data?.message || "Error updating role");
+        }
+    };
 
     return (
         <div className="fade-in">
@@ -369,6 +385,7 @@ const AdminView = () => {
                         <tr style={{borderBottom: '1px solid rgba(255,255,255,0.1)', color: 'gray'}}>
                             <th style={{padding: 10}}>ID</th>
                             <th style={{padding: 10}}>Name / Email</th>
+                            <th style={{padding: 10}}>Role</th>
                             <th style={{padding: 10}}>Status</th>
                             <th style={{padding: 10}}>Today's Work</th>
                         </tr>
@@ -378,6 +395,21 @@ const AdminView = () => {
                             <tr key={u.id} style={{borderBottom: '1px solid rgba(255,255,255,0.05)'}}>
                                 <td style={{padding: 10}}>{u.id}</td>
                                 <td style={{padding: 10}}><strong>{u.name}</strong><br/><span style={{fontSize: 12, color: 'gray'}}>{u.email}</span></td>
+                                <td style={{padding: 10}}>
+                                    {state.user?.email === 'mdmiraj.paperles@gmail.com' ? (
+                                        <select 
+                                            style={{...inputStyle, padding: '4px 8px', width: 'auto'}} 
+                                            value={u.role || 'user'} 
+                                            onChange={(e) => handleRoleChange(u.id, e.target.value)}
+                                        >
+                                            <option value="user">User</option>
+                                            <option value="manager">Manager</option>
+                                            <option value="admin">Admin</option>
+                                        </select>
+                                    ) : (
+                                        <span style={{textTransform: 'capitalize'}}>{u.role || 'user'}</span>
+                                    )}
+                                </td>
                                 <td style={{padding: 10}}>
                                     <span style={{ padding: '2px 8px', borderRadius: 12, background: u.isTrackingActive ? 'rgba(0,255,0,0.1)' : 'rgba(255,0,0,0.1)', color: u.isTrackingActive ? '#52c41a' : '#ff4d4f', fontWeight: 'bold' }}>
                                         {u.isTrackingActive ? 'Live' : 'Offline'}

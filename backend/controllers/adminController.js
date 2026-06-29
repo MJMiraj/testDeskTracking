@@ -20,7 +20,7 @@ exports.getAllUsersStats = asyncHandler(async (req, res) => {
     let tomorrow = new Date(targetDate);
     tomorrow.setDate(targetDate.getDate() + 1);
 
-    const users = await User.findAll({ attributes: ['id', 'name', 'email'] });
+    const users = await User.findAll({ attributes: ['id', 'name', 'email', 'role'] });
     
     const stats = [];
 
@@ -46,6 +46,7 @@ exports.getAllUsersStats = asyncHandler(async (req, res) => {
             id: u.id,
             name: u.name,
             email: u.email,
+            role: u.role,
             isTrackingActive,
             totalMinutes,
             lastActive: screenshots.length > 0 ? screenshots[0].createdAt : null
@@ -53,4 +54,23 @@ exports.getAllUsersStats = asyncHandler(async (req, res) => {
     }
 
     res.status(200).json({ success: true, data: stats });
+});
+
+exports.updateUserRole = asyncHandler(async (req, res) => {
+    // ONLY allow Miraj to update roles
+    if (req.user.email !== 'mdmiraj.paperles@gmail.com') {
+        return res.status(403).json({ success: false, message: 'Super admin access required to change roles.' });
+    }
+
+    const { role } = req.body;
+    const userToUpdate = await User.findByPk(req.params.id);
+
+    if (!userToUpdate) {
+        return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    userToUpdate.role = role;
+    await userToUpdate.save();
+
+    res.status(200).json({ success: true, message: 'Role updated successfully', data: userToUpdate });
 });
