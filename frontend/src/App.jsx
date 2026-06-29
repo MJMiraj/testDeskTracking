@@ -1463,7 +1463,7 @@ const MainApp = () => {
                     </div>
                 </div>
 
-                {view === 'dashboard' && <DashboardView summary={summary} fetchSummary={fetchSummary} />}
+                {view === 'dashboard' && <DashboardView summary={summary} fetchSummary={fetchData} />}
                 {view === 'screenshots' && <ScreenshotsView screenshots={screenshots} />}
                 {view === 'flow' && <FlowStateView summary={summary} />}
                 {view === 'coworking' && <CoWorkingView />}
