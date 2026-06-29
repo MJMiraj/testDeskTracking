@@ -394,50 +394,55 @@ const DashboardView = ({ summary, fetchSummary }) => {
             </div>
 
             {/* Charts Section */}
-            <div className="charts-grid" style={{ marginTop: 30, display: 'flex', gap: 20, flexWrap: 'wrap', flexDirection: 'column' }}>
-                <div style={{ ...cardStyle, width: '100%', height: 350 }}>
-                    <h4 style={{ marginBottom: 20 }}>Daily Working Hours Summary</h4>
-                    <ResponsiveContainer width="100%" height="90%">
-                        <BarChart data={hourlyData} barCategoryGap="15%">
-                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                            <XAxis dataKey="time" stroke="gray" tick={{ fontSize: 10 }} interval={0} angle={-45} textAnchor="end" height={60} />
-                            <YAxis stroke="gray" domain={[0, 60]} ticks={[0, 15, 30, 45, 60]} tickFormatter={(v) => v + 'm'} tick={{ fontSize: 12 }} />
-                            <RechartsTooltip
-                                contentStyle={{ background: 'rgba(0,0,0,0.8)', border: 'none', borderRadius: 8, color: '#fff' }}
-                                formatter={(value, name) => [value + ' min', name]}
-                            />
-                            <Legend />
-                            <Bar dataKey="productive" name="Productive" stackId="a" fill="#52c41a" radius={[0, 0, 0, 0]} />
-                            <Bar dataKey="idle" name="Idle" stackId="a" fill="#cccccc" radius={[0, 0, 0, 0]} />
-                            <Bar dataKey="unproductive" name="Unproductive" stackId="a" fill="#ff4d4f" radius={[4, 4, 0, 0]} />
-                        </BarChart>
-                    </ResponsiveContainer>
+            <div className="charts-grid" style={{ marginTop: 30, display: 'flex', gap: 20, flexDirection: 'column' }}>
+                
+                {/* Productivity Bar - Full Width */}
+                <div style={{ ...cardStyle, width: '100%', height: 'auto' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                        <h4 style={{ margin: 0 }}>Productivity Bar</h4>
+                        <span style={{ fontSize: 12, color: 'gray' }}>Click & Drag empty/gray blocks to log offline time</span>
+                    </div>
+                    
+                    <ProductivityBar 
+                        timelineData={timelineData} 
+                        onSelectRange={(startMin, endMin) => {
+                            setManualTimeModal({ 
+                                startHour: Math.floor(startMin / 60),
+                                startMinute: startMin % 60,
+                                endHour: Math.floor(endMin / 60),
+                                endMinute: endMin % 60,
+                                date: new Date().toISOString().split('T')[0] 
+                            });
+                        }} 
+                    />
+                    {!timelineData && (
+                        <div style={{ color: 'gray', textAlign: 'center', padding: '20px 0' }}>Loading timeline...</div>
+                    )}
                 </div>
 
-                <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
-                    <div style={{ ...cardStyle, flex: 2, minWidth: 300, height: 'auto', maxHeight: 400, overflowY: 'auto' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                            <h4 style={{ margin: 0 }}>Productivity Bar</h4>
-                            <span style={{ fontSize: 12, color: 'gray' }}>Click & Drag empty/gray blocks to log offline time</span>
-                        </div>
-                        
-                        <ProductivityBar 
-                            timelineData={timelineData} 
-                            onSelectRange={(startMin, endMin) => {
-                                setManualTimeModal({ 
-                                    startHour: Math.floor(startMin / 60),
-                                    startMinute: startMin % 60,
-                                    endHour: Math.floor(endMin / 60),
-                                    endMinute: endMin % 60,
-                                    date: new Date().toISOString().split('T')[0] 
-                                });
-                            }} 
-                        />
-                        {!timelineData && (
-                            <div style={{ color: 'gray', textAlign: 'center', padding: '20px 0' }}>Loading timeline...</div>
-                        )}
+                {/* Second Row: Bar Chart and Pie Chart */}
+                <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', width: '100%' }}>
+                    {/* Bar Chart */}
+                    <div style={{ ...cardStyle, flex: 2, minWidth: 400, height: 350 }}>
+                        <h4 style={{ marginBottom: 20 }}>Daily Working Hours Summary</h4>
+                        <ResponsiveContainer width="100%" height="90%">
+                            <BarChart data={hourlyData} barCategoryGap="15%">
+                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                                <XAxis dataKey="time" stroke="gray" tick={{ fontSize: 10 }} interval={0} angle={-45} textAnchor="end" height={60} />
+                                <YAxis stroke="gray" domain={[0, 60]} ticks={[0, 15, 30, 45, 60]} tickFormatter={(v) => v + 'm'} tick={{ fontSize: 12 }} />
+                                <RechartsTooltip
+                                    contentStyle={{ background: 'rgba(0,0,0,0.8)', border: 'none', borderRadius: 8, color: '#fff' }}
+                                    formatter={(value, name) => [value + ' min', name]}
+                                />
+                                <Legend />
+                                <Bar dataKey="productive" name="Productive" stackId="a" fill="#52c41a" radius={[0, 0, 0, 0]} />
+                                <Bar dataKey="idle" name="Idle" stackId="a" fill="#cccccc" radius={[0, 0, 0, 0]} />
+                                <Bar dataKey="unproductive" name="Unproductive" stackId="a" fill="#ff4d4f" radius={[4, 4, 0, 0]} />
+                            </BarChart>
+                        </ResponsiveContainer>
                     </div>
 
+                    {/* Top Apps Pie Chart */}
                     <div style={{ ...cardStyle, flex: 1, minWidth: 300, height: 350 }}>
                         <h4 style={{ marginBottom: 20 }}>Top Apps Used Today</h4>
                         {topApps && topApps.length > 0 ? (
