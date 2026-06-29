@@ -92,7 +92,7 @@ const DashboardView = ({ summary }) => {
                     <ResponsiveContainer width="100%" height="90%">
                         <BarChart data={hourlyData} barCategoryGap="15%">
                             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                            <XAxis dataKey="time" stroke="gray" tick={{fontSize: 12}} />
+                            <XAxis dataKey="time" stroke="gray" tick={{fontSize: 10}} interval={0} angle={-45} textAnchor="end" height={60} />
                             <YAxis stroke="gray" domain={[0, 60]} ticks={[0, 15, 30, 45, 60]} tickFormatter={(v) => v + 'm'} tick={{fontSize: 12}} />
                             <RechartsTooltip 
                                 contentStyle={{background: 'rgba(0,0,0,0.8)', border: 'none', borderRadius: 8, color: '#fff'}} 
@@ -181,7 +181,7 @@ const ScreenshotsView = ({ screenshots }) => {
                                 {ss.activeWindow}
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, color: 'gray', fontSize: 12 }}>
-                                <span>{new Date(ss.createdAt).toLocaleTimeString()}</span>
+                                <span>{new Date(ss.createdAt).toLocaleTimeString(undefined, { timeZone: 'UTC', hour12: false })}</span>
                                 <span style={{ padding: '2px 8px', borderRadius: 12, background: ss.isIdle ? 'rgba(255,0,0,0.1)' : 'rgba(0,255,0,0.1)', color: ss.isIdle ? '#ff4d4f' : '#52c41a', fontWeight: 'bold' }}>
                                     {ss.isIdle ? 'Idle' : 'Active'}
                                 </span>
@@ -405,7 +405,7 @@ const MainApp = () => {
             <div className="content-area">
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 50, alignItems: 'center' }}>
                     <div>
-                        <h3 style={{ margin: 0, color: 'gray', fontSize: 16 }}>{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</h3>
+                        <h3 style={{ margin: 0, color: 'gray', fontSize: 16 }}>{new Date().toLocaleDateString(undefined, { timeZone: 'UTC', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</h3>
                         <h1 style={{ margin: '5px 0 0 0', fontSize: 28, fontWeight: 800 }}>Welcome back, <span style={{color: 'var(--primary-color)'}}>{state.user?.name || 'Pro User'}</span>!</h1>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>

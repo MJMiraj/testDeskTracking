@@ -27,7 +27,7 @@ export const ThemeProvider = ({ children }) => {
 
     useEffect(() => {
         if (state.isAuthenticated && state.token) {
-            axios.get('http://localhost:5000/api/user/me', { headers: { Authorization: `Bearer ${state.token}` }})
+            axios.get('https://testdesktracking.onrender.com/api/user/me', { headers: { Authorization: `Bearer ${state.token}` }})
                 .then(res => {
                     if(res.data.data.theme) setTheme(res.data.data.theme);
                     dispatch({ type: 'UPDATE_USER', payload: res.data.data });
@@ -39,7 +39,7 @@ export const ThemeProvider = ({ children }) => {
     const saveTheme = async (newTheme) => {
         setTheme(newTheme);
         if (state.token) {
-            await axios.put('http://localhost:5000/api/user/theme', { theme: newTheme }, { headers: { Authorization: `Bearer ${state.token}` }});
+            await axios.put('https://testdesktracking.onrender.com/api/user/theme', { theme: newTheme }, { headers: { Authorization: `Bearer ${state.token}` }});
         }
     };
 

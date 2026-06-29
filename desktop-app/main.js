@@ -76,7 +76,7 @@ async function captureAndUpload() {
         form.append('activeWindow', activeWindow);
         form.append('isIdle', isIdle.toString());
 
-        await axios.post('http://localhost:5000/api/tracking/upload', form, {
+        await axios.post('https://testdesktracking.onrender.com/api/tracking/upload', form, {
             headers: {
                 ...form.getHeaders(),
                 Authorization: `Bearer ${currentToken}`
