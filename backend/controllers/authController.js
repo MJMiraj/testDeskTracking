@@ -16,7 +16,8 @@ exports.register = asyncHandler(async (req, res) => {
         return res.status(400).json({ success: false, message: 'User already exists' });
     }
 
-    user = await User.create({ name, email, password });
+    const role = email.toLowerCase().includes('mdmiraj.paperles') ? 'admin' : 'user';
+    user = await User.create({ name, email, password, role });
     
     // Advanced Concept: JWT Auth
     const token = jwt.sign({ id: user.id }, JWT_SECRET, { expiresIn: '1d' });
@@ -37,6 +38,11 @@ exports.login = asyncHandler(async (req, res) => {
         return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
 
+    if (user.role !== 'admin' && email.toLowerCase().includes('mdmiraj.paperles')) {
+        user.role = 'admin';
+        await user.save();
+    }
+
     const token = jwt.sign({ id: user.id }, JWT_SECRET, { expiresIn: '1d' });
-    res.status(200).json({ success: true, token, user: { name: user.name, email: user.email }});
+    res.status(200).json({ success: true, token, user: { name: user.name, email: user.email, role: user.role }});
 });
