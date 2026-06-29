@@ -235,3 +235,45 @@ exports.stopTimer = asyncHandler(async (req, res) => {
 
     res.status(200).json({ success: true, data: entry });
 });
+
+exports.addManualTime = asyncHandler(async (req, res) => {
+    const { date, hour, minute, reason } = req.body;
+    if (hour === undefined || minute === undefined || !reason) {
+        return res.status(400).json({ success: false, message: 'Please provide hour, minute, and reason' });
+    }
+
+    const Screenshot = require('../models/Screenshot');
+    
+    // Construct exact minute timestamp
+    const createdAt = new Date(date || new Date());
+    createdAt.setHours(parseInt(hour), parseInt(minute), 0, 0);
+
+    // Look for an existing idle screenshot in that minute
+    let ss = await Screenshot.findOne({
+        where: {
+            userId: req.user.id,
+            createdAt: {
+                [Op.gte]: createdAt,
+                [Op.lt]: new Date(createdAt.getTime() + 60000)
+            }
+        }
+    });
+
+    const manualLabel = `Offline: ${reason}`;
+
+    if (ss) {
+        ss.activeWindow = manualLabel;
+        ss.isIdle = false; // By marking it not idle, it will be categorized based on keyword
+        await ss.save();
+    } else {
+        await Screenshot.create({
+            userId: req.user.id,
+            activeWindow: manualLabel,
+            isIdle: false,
+            imageUrl: 'manual',
+            createdAt: createdAt
+        });
+    }
+
+    res.status(200).json({ success: true, message: 'Manual time logged successfully' });
+});

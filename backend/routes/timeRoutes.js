@@ -13,6 +13,8 @@ router.route('/')
     .get(getEntries)
     .post(startTimer);
 
+router.post('/manual', require('../controllers/timeController').addManualTime);
+
 router.put('/:id/stop', stopTimer);
 
 module.exports = router;

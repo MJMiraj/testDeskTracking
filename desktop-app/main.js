@@ -102,9 +102,8 @@ async function captureAndUpload() {
         console.log('Upload successful!');
 
     } catch (error) {
+        // Silently log error to prevent interrupting the user if the server is asleep
         console.error('Capture/Upload Error:', error.message);
-        const { dialog } = require('electron');
-        dialog.showErrorBox('Capture/Upload Error', error.message + '\n' + (error.stack || ''));
     }
 }
 
