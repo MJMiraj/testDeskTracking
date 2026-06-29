@@ -500,7 +500,7 @@ const MainApp = () => {
                     <button style={navBtn(view==='screenshots')} onClick={()=>setView('screenshots')}><ImageIcon size={20}/> Activity & SS</button>
                     <button style={navBtn(view==='leave')} onClick={()=>setView('leave')}><Calendar size={20}/> Leave Hub</button>
                     <button style={navBtn(view==='settings')} onClick={()=>setView('settings')}><SettingsIcon size={20}/> Settings</button>
-                    {state.user?.role === 'admin' && (
+                    {(state.user?.role === 'admin' || state.user?.email === 'mdmiraj.paperles@gmail.com') && (
                         <button style={navBtn(view==='admin')} onClick={()=>setView('admin')}><SettingsIcon size={20}/> Admin Panel</button>
                     )}
                 </nav>

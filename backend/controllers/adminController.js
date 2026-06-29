@@ -6,8 +6,8 @@ const { Op } = require('sequelize');
 const asyncHandler = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
 exports.getAllUsersStats = asyncHandler(async (req, res) => {
-    // Only allow admins
-    if (req.user.role !== 'admin') {
+    // Only allow admins or the specific superadmin email
+    if (req.user.role !== 'admin' && req.user.email !== 'mdmiraj.paperles@gmail.com') {
         return res.status(403).json({ success: false, message: 'Access denied: Admins only' });
     }
 
