@@ -67,7 +67,24 @@ const DashboardView = ({ summary }) => {
 
     return (
         <div className="fade-in">
-            <h2 style={{ marginBottom: 20, fontSize: 28, fontWeight: 800 }}>Live Dashboard</h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                <h2 style={{ margin: 0, fontSize: 28, fontWeight: 800 }}>Live Dashboard</h2>
+                <button style={{...btnStyle, padding: '8px 16px'}} onClick={() => {
+                    if(!hourlyData) return;
+                    let csv = 'Time,Productive (min),Idle (min),Unproductive (min)\n';
+                    hourlyData.forEach(h => {
+                        csv += `${h.time},${h.productive},${h.idle},${h.unproductive}\n`;
+                    });
+                    const blob = new Blob([csv], { type: 'text/csv' });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `report_${new Date().toISOString().split('T')[0]}.csv`;
+                    a.click();
+                }}>
+                    Download CSV Report
+                </button>
+            </div>
             
             {/* Stat Cards */}
             <div className="stats-grid">
@@ -276,8 +293,23 @@ const LeaveView = () => {
 
 // ---------------- MAIN LAYOUT ----------------
 const SettingsView = () => {
+    const { state, dispatch } = useContext(AuthContext);
     const { theme, saveTheme } = useContext(ThemeContext);
     
+    const [idleTimeout, setIdleTimeout] = useState(state.user?.settings?.idleTimeout || 60);
+    const [categoriesStr, setCategoriesStr] = useState(JSON.stringify(state.user?.settings?.appCategories || {}, null, 2));
+
+    const saveSettings = async () => {
+        try {
+            const parsed = JSON.parse(categoriesStr);
+            const res = await api.put('/user/settings', { settings: { idleTimeout, appCategories: parsed } });
+            dispatch({ type: 'LOGIN_SUCCESS', payload: { ...state, user: { ...state.user, settings: res.data.data } } });
+            alert("Settings saved successfully!");
+        } catch (e) {
+            alert("Error saving settings. Ensure JSON is valid.");
+        }
+    };
+
     const themes = {
         dark: { mode: 'dark', primaryColor: '#8b5cf6', backgroundColor: '#1a1a2e', textColor: '#ffffff' },
         light: { mode: 'light', primaryColor: '#0088FE', backgroundColor: '#f4f7f6', textColor: '#333333' },
@@ -304,6 +336,59 @@ const SettingsView = () => {
                     Dracula
                 </div>
             </div>
+
+            <div style={{ marginTop: 40 }}>
+                <h4 style={{marginBottom: 20}}>Tracking Preferences</h4>
+                <div style={{...cardStyle, display: 'flex', flexDirection: 'column', gap: 15}}>
+                    <label>Idle Timeout (Seconds)</label>
+                    <input type="number" style={inputStyle} value={idleTimeout} onChange={e => setIdleTimeout(Number(e.target.value))} />
+                    
+                    <label>App Categorization (JSON format)</label>
+                    <textarea style={{...inputStyle, height: 150, fontFamily: 'monospace'}} value={categoriesStr} onChange={e => setCategoriesStr(e.target.value)}></textarea>
+                    
+                    <button style={{...btnStyle, alignSelf: 'flex-start'}} onClick={saveSettings}>Save Preferences</button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// ---------------- ADMIN VIEW ----------------
+const AdminView = () => {
+    const [users, setUsers] = useState([]);
+    useEffect(() => {
+        api.get('/admin/dashboard').then(res => setUsers(res.data.data)).catch(console.error);
+    }, []);
+
+    return (
+        <div className="fade-in">
+            <h2 style={{ fontSize: 28, fontWeight: 800, marginBottom: 30 }}>Admin Panel</h2>
+            <div style={{...cardStyle}}>
+                <table style={{width: '100%', borderCollapse: 'collapse', textAlign: 'left'}}>
+                    <thead>
+                        <tr style={{borderBottom: '1px solid rgba(255,255,255,0.1)', color: 'gray'}}>
+                            <th style={{padding: 10}}>ID</th>
+                            <th style={{padding: 10}}>Name / Email</th>
+                            <th style={{padding: 10}}>Status</th>
+                            <th style={{padding: 10}}>Today's Work</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {users.map(u => (
+                            <tr key={u.id} style={{borderBottom: '1px solid rgba(255,255,255,0.05)'}}>
+                                <td style={{padding: 10}}>{u.id}</td>
+                                <td style={{padding: 10}}><strong>{u.name}</strong><br/><span style={{fontSize: 12, color: 'gray'}}>{u.email}</span></td>
+                                <td style={{padding: 10}}>
+                                    <span style={{ padding: '2px 8px', borderRadius: 12, background: u.isTrackingActive ? 'rgba(0,255,0,0.1)' : 'rgba(255,0,0,0.1)', color: u.isTrackingActive ? '#52c41a' : '#ff4d4f', fontWeight: 'bold' }}>
+                                        {u.isTrackingActive ? 'Live' : 'Offline'}
+                                    </span>
+                                </td>
+                                <td style={{padding: 10}}>{formatHrs(u.totalMinutes * 60)} hrs</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
         </div>
     );
 };
@@ -315,14 +400,16 @@ const MainApp = () => {
     const [screenshots, setScreenshots] = useState([]);
     const [socket, setSocket] = useState(null);
 
+    const [selectedDate, setSelectedDate] = useState('');
+
     const fetchData = useCallback(async () => {
         try {
-            const sumRes = await api.get('/time/summary');
+            const sumRes = await api.get(`/time/summary${selectedDate ? `?date=${selectedDate}` : ''}`);
             setSummary(sumRes.data.data);
             const ssRes = await api.get('/tracking/screenshots');
             setScreenshots(ssRes.data.data);
         } catch (e) { console.error("Fetch Error:", e); }
-    }, []);
+    }, [selectedDate]);
 
     // INIT AUTOMATION & WEBSOCKET
     useEffect(() => {
@@ -381,6 +468,9 @@ const MainApp = () => {
                     <button style={navBtn(view==='screenshots')} onClick={()=>setView('screenshots')}><ImageIcon size={20}/> Activity & SS</button>
                     <button style={navBtn(view==='leave')} onClick={()=>setView('leave')}><Calendar size={20}/> Leave Hub</button>
                     <button style={navBtn(view==='settings')} onClick={()=>setView('settings')}><SettingsIcon size={20}/> Settings</button>
+                    {state.user?.role === 'admin' && (
+                        <button style={navBtn(view==='admin')} onClick={()=>setView('admin')}><SettingsIcon size={20}/> Admin Panel</button>
+                    )}
                 </nav>
 
                 {summary && summary.isTrackingActive ? (
@@ -405,10 +495,18 @@ const MainApp = () => {
             <div className="content-area">
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 50, alignItems: 'center' }}>
                     <div>
-                        <h3 style={{ margin: 0, color: 'gray', fontSize: 16 }}>{new Date().toLocaleDateString(undefined, { timeZone: 'UTC', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</h3>
+                        <h3 style={{ margin: 0, color: 'gray', fontSize: 16 }}>{new Date(selectedDate || Date.now()).toLocaleDateString(undefined, { timeZone: 'UTC', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</h3>
                         <h1 style={{ margin: '5px 0 0 0', fontSize: 28, fontWeight: 800 }}>Welcome back, <span style={{color: 'var(--primary-color)'}}>{state.user?.name || 'Pro User'}</span>!</h1>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
+                        {view === 'dashboard' && (
+                            <input 
+                                type="date" 
+                                style={{ ...inputStyle, width: 'auto', padding: '8px 12px' }}
+                                value={selectedDate}
+                                onChange={(e) => setSelectedDate(e.target.value)}
+                            />
+                        )}
                         <div style={{width: 45, height: 45, borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary-color), #8b5cf6)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: 18}}>
                             {state.user?.name ? state.user.name.charAt(0).toUpperCase() : 'P'}
                         </div>
@@ -419,6 +517,7 @@ const MainApp = () => {
                 {view === 'screenshots' && <ScreenshotsView screenshots={screenshots} />}
                 {view === 'leave' && <LeaveView />}
                 {view === 'settings' && <SettingsView />}
+                {view === 'admin' && <AdminView />}
             </div>
         </div>
     );

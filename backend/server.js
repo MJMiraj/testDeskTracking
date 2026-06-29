@@ -54,12 +54,15 @@ app.use('/uploads', express.static('uploads'));
 const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 1000 }); // Increased for SS uploads
 app.use(limiter);
 
+const adminRoutes = require('./routes/adminRoutes'); // Admin Routes
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/time', timeRoutes);
 app.use('/api/tracking', trackingRoutes);
 app.use('/api/leave', leaveRoutes); // Leave API
+app.use('/api/admin', adminRoutes); // Admin API
 
 // Serve frontend in production
 app.use(express.static(path.join(__dirname, 'public')));

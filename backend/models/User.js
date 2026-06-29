@@ -9,6 +9,24 @@ const User = sequelize.define('User', {
     password: { type: DataTypes.STRING, allowNull: true },
     provider: { type: DataTypes.STRING, defaultValue: 'local' },
     providerId: { type: DataTypes.STRING, allowNull: true },
+    role: { type: DataTypes.STRING, defaultValue: 'user' },
+    settings: {
+        type: DataTypes.JSON,
+        allowNull: false,
+        defaultValue: {
+            idleTimeout: 60,
+            appCategories: {
+                code: 'productive',
+                phpstorm: 'productive',
+                storm: 'productive',
+                chrome: 'productive',
+                firefox: 'productive',
+                github: 'productive',
+                terminal: 'productive',
+                laragon: 'productive'
+            }
+        }
+    },
     // Advanced: Storing theme preferences in JSON
     theme: {
         type: DataTypes.JSON,

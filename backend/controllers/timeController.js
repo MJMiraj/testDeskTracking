@@ -12,9 +12,15 @@ exports.getEntries = asyncHandler(async (req, res) => {
 });
 
 exports.getSummary = asyncHandler(async (req, res) => {
-    const today = new Date();
+    let today = new Date();
+    if (req.query.date) {
+        today = new Date(req.query.date);
+    }
     today.setHours(0, 0, 0, 0);
     
+    let tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+
     const weekStart = new Date(today);
     weekStart.setDate(today.getDate() - today.getDay());
 
@@ -24,7 +30,10 @@ exports.getSummary = asyncHandler(async (req, res) => {
 
     const Screenshot = require('../models/Screenshot');
     const screenshots = await Screenshot.findAll({
-        where: { userId: req.user.id, createdAt: { [Op.gte]: today } },
+        where: { 
+            userId: req.user.id, 
+            createdAt: { [Op.gte]: today, [Op.lt]: tomorrow } 
+        },
         order: [['createdAt', 'DESC']]
     });
 
@@ -59,8 +68,16 @@ exports.getSummary = asyncHandler(async (req, res) => {
         appMap[appName]++;
 
         const lowerApp = appName.toLowerCase();
-        // Assuming development/work tools as productive
-        const isProd = lowerApp.includes('code') || lowerApp.includes('phpstorm') || lowerApp.includes('storm') || lowerApp.includes('chrome') || lowerApp.includes('firefox') || lowerApp.includes('github') || lowerApp.includes('terminal') || lowerApp.includes('laragon');
+        
+        let isProd = false;
+        if (req.user.settings && req.user.settings.appCategories) {
+            // Find if any key in appCategories is a substring of the app name
+            isProd = Object.entries(req.user.settings.appCategories).some(([key, val]) => {
+                return val === 'productive' && lowerApp.includes(key.toLowerCase());
+            });
+        } else {
+            isProd = lowerApp.includes('code') || lowerApp.includes('phpstorm') || lowerApp.includes('storm') || lowerApp.includes('chrome') || lowerApp.includes('firefox') || lowerApp.includes('github') || lowerApp.includes('terminal') || lowerApp.includes('laragon');
+        }
         
         if (isProd && !ss.isIdle) {
             productiveCount++;

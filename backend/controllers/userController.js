@@ -10,5 +10,12 @@ exports.updateTheme = asyncHandler(async (req, res) => {
 });
 
 exports.getMe = asyncHandler(async (req, res) => {
-    res.status(200).json({ success: true, data: { name: req.user.name, email: req.user.email, theme: req.user.theme } });
+    res.status(200).json({ success: true, data: { name: req.user.name, email: req.user.email, theme: req.user.theme, role: req.user.role, settings: req.user.settings } });
+});
+
+exports.updateSettings = asyncHandler(async (req, res) => {
+    const { settings } = req.body;
+    req.user.settings = { ...req.user.settings, ...settings };
+    await req.user.save();
+    res.status(200).json({ success: true, data: req.user.settings });
 });

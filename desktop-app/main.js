@@ -10,6 +10,7 @@ let mainWindow;
 let trackingInterval;
 let currentToken = null;
 let currentTimeEntryId = null;
+let userIdleTimeout = 60;
 
 function createWindow() {
     mainWindow = new BrowserWindow({
@@ -34,10 +35,23 @@ function createWindow() {
 
 app.whenReady().then(createWindow);
 
-ipcMain.on('start-tracking', (event, { token, timeEntryId }) => {
+ipcMain.on('start-tracking', async (event, { token, timeEntryId }) => {
     currentToken = token;
     currentTimeEntryId = timeEntryId;
     
+    // Fetch user settings
+    try {
+        const res = await axios.get('https://testdesktracking.onrender.com/api/user/me', {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.data && res.data.data && res.data.data.settings && res.data.data.settings.idleTimeout) {
+            userIdleTimeout = parseInt(res.data.data.settings.idleTimeout, 10);
+            console.log(`Loaded idle timeout: ${userIdleTimeout} seconds`);
+        }
+    } catch (e) {
+        console.error('Failed to fetch user settings for idle timeout', e.message);
+    }
+
     console.log(`Started Tracking for Entry ID: ${timeEntryId}`);
     captureAndUpload(); // Initial capture
 
@@ -56,9 +70,9 @@ async function captureAndUpload() {
     if (!currentToken || !currentTimeEntryId) return;
 
     try {
-        // 1. Check Idle Time (if user hasn't moved mouse in 60 seconds)
+        // 1. Check Idle Time based on user settings
         const idleTime = powerMonitor.getSystemIdleTime();
-        const isIdle = idleTime > 60;
+        const isIdle = idleTime > userIdleTimeout;
 
         // 2. Track Active Window
         const activeWindow = await activeWin();
