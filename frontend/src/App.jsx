@@ -1,4 +1,4 @@
-import React, { useContext, useState, useEffect, useCallback } from 'react';
+import React, { useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { AuthProvider, AuthContext } from './context/AuthContext';
 import { ThemeProvider, ThemeContext } from './context/ThemeContext';
 import { LayoutDashboard, Settings as SettingsIcon, LogOut, Image as ImageIcon, Calendar, ListTodo, Timer, DollarSign, Brain, Target, Sparkles, AlertTriangle, Activity, CalendarDays, Waves, Award, Heart, Shield, TrendingUp, Flame, Coffee, UserPlus, Briefcase, FileText, Users, Link, Music, Database } from 'lucide-react';
@@ -58,6 +58,117 @@ const AuthScreen = () => {
     );
 };
 
+// ---------------- COMPONENTS ----------------
+const ProductivityBar = ({ timelineData, onSelectRange }) => {
+    const flatMinutes = useMemo(() => {
+        const flat = [];
+        timelineData.forEach(hd => {
+            hd.minutes.forEach((m, mIdx) => {
+                flat.push({ hour: hd.hour, minute: mIdx, totalMin: hd.hour * 60 + mIdx, data: m });
+            });
+        });
+        return flat;
+    }, [timelineData]);
+
+    const blocks = useMemo(() => {
+        const merged = [];
+        let currentBlock = null;
+
+        for (let i = 0; i < flatMinutes.length; i++) {
+            const min = flatMinutes[i];
+            const status = min.data === 'empty' ? 'empty' : min.data.status;
+            const app = min.data === 'empty' ? '' : min.data.app;
+            
+            if (!currentBlock) {
+                currentBlock = { start: min, end: min, status, app, length: 1 };
+            } else {
+                if (currentBlock.status === status && currentBlock.app === app) {
+                    currentBlock.end = min;
+                    currentBlock.length++;
+                } else {
+                    merged.push(currentBlock);
+                    currentBlock = { start: min, end: min, status, app, length: 1 };
+                }
+            }
+        }
+        if (currentBlock) merged.push(currentBlock);
+        return merged;
+    }, [flatMinutes]);
+
+    const [isDragging, setIsDragging] = useState(false);
+    const [dragStart, setDragStart] = useState(null);
+    const [dragCurrent, setDragCurrent] = useState(null);
+
+    const handleMouseDown = (min) => {
+        setIsDragging(true);
+        setDragStart(min);
+        setDragCurrent(min);
+    };
+
+    const handleMouseEnter = (min) => {
+        if (isDragging) setDragCurrent(min);
+    };
+
+    const handleMouseUp = () => {
+        if (isDragging && dragStart && dragCurrent) {
+            const startMin = Math.min(dragStart.totalMin, dragCurrent.totalMin);
+            const endMin = Math.max(dragStart.totalMin, dragCurrent.totalMin);
+            onSelectRange(startMin, endMin);
+        }
+        setIsDragging(false);
+        setDragStart(null);
+        setDragCurrent(null);
+    };
+
+    const formatTime = (minObj) => `${minObj.hour.toString().padStart(2, '0')}:${minObj.minute.toString().padStart(2, '0')}`;
+
+    return (
+        <div style={{ userSelect: 'none' }} onMouseLeave={() => { if(isDragging) handleMouseUp(); }} onMouseUp={handleMouseUp}>
+            <div style={{ display: 'flex', width: '100%', height: 40, background: 'rgba(255,255,255,0.05)', borderRadius: 6, position: 'relative', overflow: 'hidden' }}>
+                {blocks.map((b, idx) => {
+                    let bg = 'transparent';
+                    if (b.status === 'productive') bg = '#00C49F';
+                    else if (b.status === 'idle') bg = '#555555';
+                    else if (b.status === 'unproductive') bg = '#FF8042';
+
+                    return (
+                        <div
+                            key={idx}
+                            title={`${formatTime(b.start)} - ${formatTime(b.end)}\n${b.status.toUpperCase()} ${b.app ? `(${b.app})` : ''}`}
+                            style={{ width: `${(b.length / 1440) * 100}%`, height: '100%', background: bg, cursor: 'default' }}
+                        />
+                    );
+                })}
+                
+                {/* Drag Overlay */}
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex' }}>
+                    {flatMinutes.map(min => {
+                        const isSelectable = min.data === 'empty' || min.data.status === 'idle';
+                        let isSelected = false;
+                        if (isDragging && dragStart && dragCurrent) {
+                            const start = Math.min(dragStart.totalMin, dragCurrent.totalMin);
+                            const end = Math.max(dragStart.totalMin, dragCurrent.totalMin);
+                            if (min.totalMin >= start && min.totalMin <= end) isSelected = true;
+                        }
+                        return (
+                            <div
+                                key={min.totalMin}
+                                onMouseDown={() => isSelectable && handleMouseDown(min)}
+                                onMouseEnter={() => isSelectable && handleMouseEnter(min)}
+                                style={{ flex: 1, height: '100%', background: isSelected ? 'rgba(0, 136, 254, 0.6)' : 'transparent', cursor: isSelectable ? 'crosshair' : 'default' }}
+                            />
+                        );
+                    })}
+                </div>
+            </div>
+            {/* Ticks */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, color: 'gray', fontSize: 10 }}>
+                {Array.from({length: 25}).map((_, i) => i % 2 === 0 ? <span key={i}>{i.toString().padStart(2, '0')}:00</span> : <span key={i} style={{visibility:'hidden'}}>|</span>)}
+            </div>
+        </div>
+    );
+};
+
 // ---------------- VIEWS ----------------
 const DashboardView = ({ summary, fetchSummary }) => {
     const { state } = useContext(AuthContext);
@@ -72,8 +183,10 @@ const DashboardView = ({ summary, fetchSummary }) => {
         try {
             await api.post('/time/manual', {
                 date: manualTimeModal.date,
-                hour: manualTimeModal.hour,
-                minute: manualTimeModal.minute,
+                startHour: manualTimeModal.startHour,
+                startMinute: manualTimeModal.startMinute,
+                endHour: manualTimeModal.endHour,
+                endMinute: manualTimeModal.endMinute,
                 reason: manualReason
             });
             setManualTimeModal(null);
@@ -303,50 +416,26 @@ const DashboardView = ({ summary, fetchSummary }) => {
 
                 <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
                     <div style={{ ...cardStyle, flex: 2, minWidth: 300, height: 'auto', maxHeight: 400, overflowY: 'auto' }}>
-                        <h4 style={{ marginBottom: 20 }}>Minute-by-Minute Timeline</h4>
-
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                            {timelineData && timelineData.map((hourData, i) => (
-                                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                    <div style={{ width: 50, fontSize: 12, color: 'gray', fontWeight: 'bold' }}>
-                                        {`${hourData.hour.toString().padStart(2, '0')}:00`}
-                                    </div>
-                                    <div style={{ flex: 1, display: 'flex', height: 24, background: 'rgba(255,255,255,0.02)', borderRadius: 4, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.05)' }}>
-                                        {hourData.minutes.map((m, mIdx) => {
-                                            let bg = 'transparent';
-                                            let title = `${hourData.hour.toString().padStart(2, '0')}:${mIdx.toString().padStart(2, '0')} - No Data`;
-
-                                            if (m !== 'empty') {
-                                                if (m.status === 'productive') bg = '#00C49F'; // Green
-                                                else if (m.status === 'idle') bg = 'gray'; // Gray for Ideal/Idle
-                                                else if (m.status === 'unproductive') bg = '#FF8042'; // Orange/Red
-                                                title = `${hourData.hour.toString().padStart(2, '0')}:${mIdx.toString().padStart(2, '0')} - ${m.status.toUpperCase()} (${m.app})`;
-                                            }
-
-                                            return (
-                                                <div
-                                                    key={mIdx}
-                                                    onClick={() => {
-                                                        if (m === 'empty' || m?.status === 'idle') {
-                                                            setManualTimeModal({ 
-                                                                hour: hourData.hour, 
-                                                                minute: mIdx, 
-                                                                date: new Date().toISOString().split('T')[0] 
-                                                            });
-                                                        }
-                                                    }}
-                                                    style={{ flex: 1, height: '100%', background: bg, borderRight: '1px solid rgba(0,0,0,0.1)', cursor: (m === 'empty' || m?.status === 'idle') ? 'pointer' : 'default' }}
-                                                    title={title}
-                                                />
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            ))}
-                            {!timelineData && (
-                                <div style={{ color: 'gray', textAlign: 'center', padding: '20px 0' }}>Loading timeline...</div>
-                            )}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                            <h4 style={{ margin: 0 }}>Productivity Bar (Minute-by-Minute)</h4>
+                            <span style={{ fontSize: 12, color: 'gray' }}>Click & Drag empty/gray blocks to log offline time</span>
                         </div>
+                        
+                        <ProductivityBar 
+                            timelineData={timelineData} 
+                            onSelectRange={(startMin, endMin) => {
+                                setManualTimeModal({ 
+                                    startHour: Math.floor(startMin / 60),
+                                    startMinute: startMin % 60,
+                                    endHour: Math.floor(endMin / 60),
+                                    endMinute: endMin % 60,
+                                    date: new Date().toISOString().split('T')[0] 
+                                });
+                            }} 
+                        />
+                        {!timelineData && (
+                            <div style={{ color: 'gray', textAlign: 'center', padding: '20px 0' }}>Loading timeline...</div>
+                        )}
                     </div>
 
                     <div style={{ ...cardStyle, flex: 1, minWidth: 300, height: 350 }}>
@@ -372,8 +461,11 @@ const DashboardView = ({ summary, fetchSummary }) => {
             {manualTimeModal && (
                 <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(5px)' }}>
                     <div style={{ ...cardStyle, width: 400, background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.1)' }}>
-                        <h3 style={{ marginTop: 0 }}>Fill Idle Time ({manualTimeModal.hour.toString().padStart(2, '0')}:{manualTimeModal.minute.toString().padStart(2, '0')})</h3>
-                        <p style={{ color: 'gray', fontSize: 14, marginBottom: 20 }}>What were you doing during this offline minute?</p>
+                        <h3 style={{ marginTop: 0 }}>Fill Offline Time</h3>
+                        <p style={{ color: 'var(--primary-color)', fontWeight: 'bold', marginBottom: 10 }}>
+                            {manualTimeModal.startHour.toString().padStart(2, '0')}:{manualTimeModal.startMinute.toString().padStart(2, '0')} to {manualTimeModal.endHour.toString().padStart(2, '0')}:{manualTimeModal.endMinute.toString().padStart(2, '0')}
+                        </p>
+                        <p style={{ color: 'gray', fontSize: 14, marginBottom: 20 }}>What were you doing during this offline block?</p>
                         <input 
                             style={{...inputStyle, marginBottom: 20}} 
                             placeholder="e.g. Team Meeting, Lunch, Reading" 

@@ -237,42 +237,57 @@ exports.stopTimer = asyncHandler(async (req, res) => {
 });
 
 exports.addManualTime = asyncHandler(async (req, res) => {
-    const { date, hour, minute, reason } = req.body;
-    if (hour === undefined || minute === undefined || !reason) {
-        return res.status(400).json({ success: false, message: 'Please provide hour, minute, and reason' });
+    const { date, startHour, startMinute, endHour, endMinute, reason } = req.body;
+    if (startHour === undefined || startMinute === undefined || endHour === undefined || endMinute === undefined || !reason) {
+        return res.status(400).json({ success: false, message: 'Please provide start time, end time, and reason' });
     }
 
     const Screenshot = require('../models/Screenshot');
     
-    // Construct exact minute timestamp
-    const createdAt = new Date(date || new Date());
-    createdAt.setHours(parseInt(hour), parseInt(minute), 0, 0);
+    // Construct exact start and end timestamps
+    const baseDate = new Date(date || new Date());
+    const start = new Date(baseDate);
+    start.setHours(parseInt(startHour), parseInt(startMinute), 0, 0);
 
-    // Look for an existing idle screenshot in that minute
-    let ss = await Screenshot.findOne({
-        where: {
-            userId: req.user.id,
-            createdAt: {
-                [Op.gte]: createdAt,
-                [Op.lt]: new Date(createdAt.getTime() + 60000)
-            }
-        }
-    });
+    const end = new Date(baseDate);
+    end.setHours(parseInt(endHour), parseInt(endMinute), 0, 0);
+
+    if (end < start) {
+        return res.status(400).json({ success: false, message: 'End time must be after start time' });
+    }
 
     const manualLabel = `Offline: ${reason}`;
+    
+    // Calculate total minutes to insert
+    const totalMinutes = Math.floor((end - start) / 60000) + 1; // inclusive of end minute
 
-    if (ss) {
-        ss.activeWindow = manualLabel;
-        ss.isIdle = false; // By marking it not idle, it will be categorized based on keyword
-        await ss.save();
-    } else {
-        await Screenshot.create({
-            userId: req.user.id,
-            activeWindow: manualLabel,
-            isIdle: false,
-            imageUrl: 'manual',
-            createdAt: createdAt
+    for (let i = 0; i < totalMinutes; i++) {
+        let currentMin = new Date(start.getTime() + (i * 60000));
+        
+        // Look for an existing idle screenshot in that minute
+        let ss = await Screenshot.findOne({
+            where: {
+                userId: req.user.id,
+                createdAt: {
+                    [Op.gte]: currentMin,
+                    [Op.lt]: new Date(currentMin.getTime() + 60000)
+                }
+            }
         });
+
+        if (ss) {
+            ss.activeWindow = manualLabel;
+            ss.isIdle = false;
+            await ss.save();
+        } else {
+            await Screenshot.create({
+                userId: req.user.id,
+                activeWindow: manualLabel,
+                isIdle: false,
+                imageUrl: 'manual',
+                createdAt: currentMin
+            });
+        }
     }
 
     res.status(200).json({ success: true, message: 'Manual time logged successfully' });
