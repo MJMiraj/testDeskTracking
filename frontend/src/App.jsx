@@ -453,6 +453,13 @@ const MainApp = () => {
                 }
             }).catch(console.error);
 
+            // Fetch User Data if missing (e.g. on page refresh)
+            if (!state.user) {
+                api.get('/user/me').then(res => {
+                    dispatch({ type: 'UPDATE_USER', payload: res.data.data });
+                }).catch(console.error);
+            }
+
             // Initial Fetch
             fetchData();
 
