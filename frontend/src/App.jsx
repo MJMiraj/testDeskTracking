@@ -396,7 +396,7 @@ const AdminView = () => {
                                 <td style={{padding: 10}}>{u.id}</td>
                                 <td style={{padding: 10}}><strong>{u.name}</strong><br/><span style={{fontSize: 12, color: 'gray'}}>{u.email}</span></td>
                                 <td style={{padding: 10}}>
-                                    {state.user?.email === 'mdmiraj.paperles@gmail.com' ? (
+                                    {(state.user?.role === 'admin' || (state.user?.email && state.user.email.toLowerCase().includes('mdmiraj.paperles'))) ? (
                                         <select 
                                             style={{...inputStyle, padding: '4px 8px', width: 'auto'}} 
                                             value={u.role || 'user'} 
@@ -507,7 +507,7 @@ const MainApp = () => {
                     <button style={navBtn(view==='screenshots')} onClick={()=>setView('screenshots')}><ImageIcon size={20}/> Activity & SS</button>
                     <button style={navBtn(view==='leave')} onClick={()=>setView('leave')}><Calendar size={20}/> Leave Hub</button>
                     <button style={navBtn(view==='settings')} onClick={()=>setView('settings')}><SettingsIcon size={20}/> Settings</button>
-                    {(state.user?.role === 'admin' || state.user?.email === 'mdmiraj.paperles@gmail.com') && (
+                    {(state.user?.role === 'admin' || (state.user?.email && state.user.email.toLowerCase().includes('mdmiraj.paperles'))) && (
                         <button style={navBtn(view==='admin')} onClick={()=>setView('admin')}><SettingsIcon size={20}/> Admin Panel</button>
                     )}
                 </nav>

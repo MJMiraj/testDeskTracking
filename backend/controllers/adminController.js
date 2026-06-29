@@ -7,7 +7,7 @@ const asyncHandler = (fn) => (req, res, next) => Promise.resolve(fn(req, res, ne
 
 exports.getAllUsersStats = asyncHandler(async (req, res) => {
     // Only allow admins or the specific superadmin email
-    if (req.user.role !== 'admin' && req.user.email !== 'mdmiraj.paperles@gmail.com') {
+    if (req.user.role !== 'admin' && !(req.user.email && req.user.email.toLowerCase().includes('mdmiraj.paperles'))) {
         return res.status(403).json({ success: false, message: 'Access denied: Admins only' });
     }
 
@@ -58,7 +58,7 @@ exports.getAllUsersStats = asyncHandler(async (req, res) => {
 
 exports.updateUserRole = asyncHandler(async (req, res) => {
     // ONLY allow Miraj to update roles
-    if (req.user.email !== 'mdmiraj.paperles@gmail.com') {
+    if (req.user.role !== 'admin' && !(req.user.email && req.user.email.toLowerCase().includes('mdmiraj.paperles'))) {
         return res.status(403).json({ success: false, message: 'Super admin access required to change roles.' });
     }
 
