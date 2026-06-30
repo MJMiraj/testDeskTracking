@@ -260,27 +260,41 @@ exports.addManualTime = asyncHandler(async (req, res) => {
     
     // Calculate total minutes to insert
     const totalMinutes = Math.floor((end - start) / 60000) + 1; // inclusive of end minute
+    const endPlusOneMinute = new Date(start.getTime() + (totalMinutes * 60000));
 
+    // 1. Fetch all existing screenshots in this time range to minimize queries
+    const existingScreenshots = await Screenshot.findAll({
+        where: {
+            userId: req.user.id,
+            createdAt: {
+                [Op.gte]: start,
+                [Op.lt]: endPlusOneMinute
+            }
+        }
+    });
+
+    // 2. Map existing by the exact minute they fall into
+    const existingByMinute = {};
+    existingScreenshots.forEach(ss => {
+        const minKey = new Date(ss.createdAt).setSeconds(0, 0);
+        // Only keep one screenshot per minute slot
+        if (!existingByMinute[minKey]) {
+            existingByMinute[minKey] = ss;
+        }
+    });
+
+    const toInsert = [];
+    const updateIds = [];
+
+    // 3. Determine which minutes need an insert vs an update
     for (let i = 0; i < totalMinutes; i++) {
         let currentMin = new Date(start.getTime() + (i * 60000));
+        let minKey = currentMin.setSeconds(0, 0);
         
-        // Look for an existing idle screenshot in that minute
-        let ss = await Screenshot.findOne({
-            where: {
-                userId: req.user.id,
-                createdAt: {
-                    [Op.gte]: currentMin,
-                    [Op.lt]: new Date(currentMin.getTime() + 60000)
-                }
-            }
-        });
-
-        if (ss) {
-            ss.activeWindow = manualLabel;
-            ss.isIdle = false;
-            await ss.save();
+        if (existingByMinute[minKey]) {
+            updateIds.push(existingByMinute[minKey].id);
         } else {
-            await Screenshot.create({
+            toInsert.push({
                 userId: req.user.id,
                 activeWindow: manualLabel,
                 isIdle: false,
@@ -288,6 +302,24 @@ exports.addManualTime = asyncHandler(async (req, res) => {
                 createdAt: currentMin
             });
         }
+    }
+
+    // 4. Perform bulk operations
+    if (toInsert.length > 0) {
+        await Screenshot.bulkCreate(toInsert);
+    }
+
+    if (updateIds.length > 0) {
+        await Screenshot.update({
+            activeWindow: manualLabel,
+            isIdle: false
+        }, {
+            where: {
+                id: {
+                    [Op.in]: updateIds
+                }
+            }
+        });
     }
 
     res.status(200).json({ success: true, message: 'Manual time logged successfully' });
