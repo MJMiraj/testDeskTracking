@@ -58,3 +58,64 @@ exports.getScreenshots = asyncHandler(async (req, res) => {
 
     res.status(200).json({ success: true, count: screenshots.length, data: screenshots });
 });
+
+// Helper for DeskTime categorization
+const categorizeApp = (windowTitle) => {
+    if (!windowTitle) return 'Neutral';
+    const title = windowTitle.toLowerCase();
+    
+    const productiveApps = ['code', 'github', 'visual studio', 'cursor', 'postman', 'figma', 'notion', 'slack', 'jira', 'trello', 'word', 'excel'];
+    const unproductiveApps = ['youtube', 'facebook', 'twitter', 'netflix', 'instagram', 'reddit', 'tiktok', 'game', 'steam'];
+    
+    for (let app of productiveApps) {
+        if (title.includes(app)) return 'Productive';
+    }
+    for (let app of unproductiveApps) {
+        if (title.includes(app)) return 'Unproductive';
+    }
+    return 'Neutral';
+};
+
+exports.getActivities = asyncHandler(async (req, res) => {
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    
+    const screenshots = await Screenshot.findAll({
+        where: {
+            userId: req.user.id,
+            createdAt: { [Op.gte]: today },
+            isIdle: false
+        },
+        attributes: ['activeWindow']
+    });
+
+    // Aggregate by activeWindow
+    const appMap = {};
+    let totalMinutes = 0;
+    
+    screenshots.forEach(ss => {
+        const title = ss.activeWindow || 'Unknown';
+        // Simplify title (e.g. "Google Chrome - YouTube" -> "YouTube")
+        const parts = title.split(' - ');
+        const simpleName = parts.length > 1 ? parts[parts.length - 1] : parts[0];
+        
+        if (!appMap[simpleName]) {
+            appMap[simpleName] = { 
+                name: simpleName, 
+                minutes: 0, 
+                category: categorizeApp(simpleName) 
+            };
+        }
+        // Since we take a screenshot approx every 1 minute, we assume 1 record = 1 min
+        appMap[simpleName].minutes += 1; 
+        totalMinutes += 1;
+    });
+
+    const data = Object.values(appMap).sort((a, b) => b.minutes - a.minutes);
+    
+    res.status(200).json({ 
+        success: true, 
+        totalMinutes,
+        data 
+    });
+});

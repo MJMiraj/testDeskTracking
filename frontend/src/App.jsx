@@ -1451,6 +1451,82 @@ const TimesheetView = () => {
     );
 };
 
+const ActivitiesView = () => {
+    const [activities, setActivities] = useState([]);
+    const [totalMin, setTotalMin] = useState(0);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const load = async () => {
+            try {
+                const res = await api.get('/tracking/activities');
+                setActivities(res.data.data);
+                setTotalMin(res.data.totalMinutes);
+            } catch (e) {
+                console.error(e);
+            } finally {
+                setLoading(false);
+            }
+        };
+        load();
+    }, []);
+
+    if (loading) return <div>Loading Activities...</div>;
+    
+    // Group into categories
+    const productive = activities.filter(a => a.category === 'Productive').reduce((sum, a) => sum + a.minutes, 0);
+    const unproductive = activities.filter(a => a.category === 'Unproductive').reduce((sum, a) => sum + a.minutes, 0);
+    const neutral = activities.filter(a => a.category === 'Neutral').reduce((sum, a) => sum + a.minutes, 0);
+
+    const getProgress = (val) => totalMin > 0 ? (val / totalMin) * 100 : 0;
+
+    return (
+        <div className="fade-in">
+            <h2 style={{ fontSize: 28, fontWeight: 800, marginBottom: 30 }}>Applications & Activities</h2>
+            
+            <div style={{ ...cardStyle, marginBottom: 30 }}>
+                <h4 style={{ marginBottom: 15, color: 'gray' }}>Productivity Breakdown</h4>
+                
+                <div style={{ display: 'flex', width: '100%', height: 25, borderRadius: 12, overflow: 'hidden', marginBottom: 15 }}>
+                    <div style={{ width: `${getProgress(productive)}%`, background: '#00C49F' }} />
+                    <div style={{ width: `${getProgress(neutral)}%`, background: '#FFBB28' }} />
+                    <div style={{ width: `${getProgress(unproductive)}%`, background: '#FF8042' }} />
+                </div>
+                
+                <div style={{ display: 'flex', gap: 20 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><div style={{ width: 12, height: 12, borderRadius: '50%', background: '#00C49F' }}></div> Productive ({Math.round(getProgress(productive))}%)</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><div style={{ width: 12, height: 12, borderRadius: '50%', background: '#FFBB28' }}></div> Neutral ({Math.round(getProgress(neutral))}%)</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><div style={{ width: 12, height: 12, borderRadius: '50%', background: '#FF8042' }}></div> Unproductive ({Math.round(getProgress(unproductive))}%)</div>
+                </div>
+            </div>
+
+            <div style={{ ...cardStyle }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                    <thead>
+                        <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', color: 'gray' }}>
+                            <th style={{ padding: 15 }}>Application</th>
+                            <th style={{ padding: 15 }}>Category</th>
+                            <th style={{ padding: 15 }}>Time Spent</th>
+                            <th style={{ padding: 15 }}>% of Day</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {activities.map((a, idx) => (
+                            <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                                <td style={{ padding: 15, fontWeight: 'bold' }}>{a.name}</td>
+                                <td style={{ padding: 15, color: a.category === 'Productive' ? '#00C49F' : a.category === 'Unproductive' ? '#FF8042' : '#FFBB28', fontWeight: 'bold' }}>{a.category}</td>
+                                <td style={{ padding: 15 }}>{a.minutes} min</td>
+                                <td style={{ padding: 15 }}>{getProgress(a.minutes).toFixed(1)}%</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+                {activities.length === 0 && <p style={{ padding: 20, textAlign: 'center', color: 'gray' }}>No activity recorded today yet.</p>}
+            </div>
+        </div>
+    );
+};
+
 const MainApp = () => {
     const { state, dispatch } = useContext(AuthContext);
     const [view, setView] = useState('dashboard');
@@ -1540,7 +1616,8 @@ const MainApp = () => {
 
                 <nav style={{ display: 'flex', flexDirection: 'column', gap: 12, flex: 1 }}>
                     <button style={navBtn(view === 'dashboard')} onClick={() => setView('dashboard')}><LayoutDashboard size={20} /> Dashboard</button>
-                    <button style={navBtn(view === 'screenshots')} onClick={() => setView('screenshots')}><ImageIcon size={20} /> Activity & SS</button>
+                    <button style={navBtn(view === 'activities')} onClick={() => setView('activities')}><Activity size={20} /> Apps & Activities</button>
+                    <button style={navBtn(view === 'screenshots')} onClick={() => setView('screenshots')}><ImageIcon size={20} /> Screenshots</button>
                     <button style={navBtn(view === 'flow')} onClick={() => setView('flow')}><Waves size={20} /> Flow State Lab</button>
                     <button style={navBtn(view === 'coworking')} onClick={() => setView('coworking')}><Users size={20} /> Co-Working</button>
                     <button style={navBtn(view === 'wellness')} onClick={() => setView('wellness')}><Heart size={20} /> Wellness</button>
@@ -1598,6 +1675,7 @@ const MainApp = () => {
                 </div>
 
                 {view === 'dashboard' && <DashboardView summary={summary} fetchSummary={fetchData} />}
+                {view === 'activities' && <ActivitiesView />}
                 {view === 'screenshots' && <ScreenshotsView screenshots={screenshots} />}
                 {view === 'flow' && <FlowStateView summary={summary} />}
                 {view === 'coworking' && <CoWorkingView />}

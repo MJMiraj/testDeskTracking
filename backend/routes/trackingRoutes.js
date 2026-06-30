@@ -1,7 +1,7 @@
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
-const { uploadScreenshot, getScreenshots } = require('../controllers/trackingController');
+const { uploadScreenshot, getScreenshots, getActivities } = require('../controllers/trackingController');
 const protect = require('../middleware/authMiddleware');
 
 const router = express.Router();
@@ -31,5 +31,6 @@ router.use(protect);
 
 router.post('/upload', upload.single('screenshot'), uploadScreenshot);
 router.get('/screenshots', getScreenshots);
+router.get('/activities', getActivities);
 
 module.exports = router;

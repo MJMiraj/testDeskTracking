@@ -16,3 +16,9 @@ freeServerConfiguration.txt
 # OS files
 .DS_Store
 Thumbs.db
+  
+desktop-installer/release/  
+desktop-app/release/  
+desktop-app/frontend-dist/  
+desktop-installer/app.zip  
+frontend/dist/ 

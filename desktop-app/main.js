@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, powerMonitor } = require('electron');
+const { app, BrowserWindow, ipcMain, powerMonitor, Tray, Menu } = require('electron');
 const path = require('path');
 const screenshot = require('screenshot-desktop');
 const activeWin = require('./getActiveWindow');
@@ -7,6 +7,7 @@ const FormData = require('form-data');
 const fs = require('fs');
 
 let mainWindow;
+let tray = null;
 let trackingInterval;
 let currentToken = null;
 let currentTimeEntryId = null;
@@ -31,9 +32,47 @@ function createWindow() {
     } else {
         mainWindow.loadURL('http://localhost:5173');
     }
+
+    // Hide to tray instead of closing
+    mainWindow.on('close', (event) => {
+        if (!app.isQuitting) {
+            event.preventDefault();
+            mainWindow.hide();
+        }
+        return false;
+    });
 }
 
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+    createWindow();
+
+    // Auto-start on login
+    app.setLoginItemSettings({
+        openAtLogin: true,
+        openAsHidden: true
+    });
+
+    // Create System Tray
+    const iconPath = path.join(__dirname, 'build', 'icon.ico');
+    tray = new Tray(iconPath);
+    const contextMenu = Menu.buildFromTemplate([
+        { label: 'Open DeskTime Pro', click: () => mainWindow.show() },
+        { type: 'separator' },
+        { 
+            label: 'Quit', 
+            click: () => {
+                app.isQuitting = true;
+                app.quit();
+            } 
+        }
+    ]);
+    tray.setToolTip('DeskTime Pro');
+    tray.setContextMenu(contextMenu);
+
+    tray.on('double-click', () => {
+        mainWindow.show();
+    });
+});
 
 ipcMain.on('start-tracking', async (event, { token, timeEntryId }) => {
     currentToken = token;
@@ -107,6 +146,7 @@ async function captureAndUpload() {
     }
 }
 
+// We no longer quit when all windows are closed, since we use the tray
 app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin') app.quit();
+    // do nothing
 });
