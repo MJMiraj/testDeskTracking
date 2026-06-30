@@ -1449,8 +1449,16 @@ const MainApp = () => {
             setSummary(sumRes.data.data);
             const ssRes = await api.get('/tracking/screenshots');
             setScreenshots(ssRes.data.data);
-        } catch (e) { console.error("Fetch Error:", e); }
-    }, [selectedDate]);
+        } catch (e) {
+            console.error("Fetch Error:", e);
+            if (e.response?.status === 401) {
+                dispatch({ type: 'LOGOUT' });
+                if (window.electronAPI) window.electronAPI.stopTracking();
+            } else {
+                setSummary({}); // Fallback so it stops loading
+            }
+        }
+    }, [selectedDate, dispatch]);
 
     // INIT AUTOMATION & WEBSOCKET
     useEffect(() => {
@@ -1466,7 +1474,9 @@ const MainApp = () => {
             if (!state.user) {
                 api.get('/user/me').then(res => {
                     dispatch({ type: 'UPDATE_USER', payload: res.data.data });
-                }).catch(console.error);
+                }).catch(e => {
+                    if (e.response?.status === 401) dispatch({ type: 'LOGOUT' });
+                });
             }
 
             // Initial Fetch
