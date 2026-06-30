@@ -111,8 +111,18 @@ const ProductivityBar = ({ timelineData, onSelectRange }) => {
 
     const handleMouseUp = () => {
         if (isDragging && dragStart && dragCurrent) {
-            const startMin = Math.min(dragStart.totalMin, dragCurrent.totalMin);
-            const endMin = Math.max(dragStart.totalMin, dragCurrent.totalMin);
+            let startMin = Math.min(dragStart.totalMin, dragCurrent.totalMin);
+            let endMin = Math.max(dragStart.totalMin, dragCurrent.totalMin);
+
+            // Auto-expand if it's a single click (no drag)
+            if (startMin === endMin) {
+                const clickedBlock = blocks.find(b => startMin >= b.start.totalMin && startMin <= b.end.totalMin);
+                if (clickedBlock && (clickedBlock.status === 'idle' || clickedBlock.status === 'empty')) {
+                    startMin = clickedBlock.start.totalMin;
+                    endMin = clickedBlock.end.totalMin;
+                }
+            }
+
             onSelectRange(startMin, endMin);
         }
         setIsDragging(false);
