@@ -69,8 +69,24 @@ exports.getSummary = asyncHandler(async (req, res) => {
 
         const lowerApp = appName.toLowerCase();
         
+        let forcedStatus = null;
+        if (lowerApp.startsWith('[productive] ')) {
+            forcedStatus = 'productive';
+            appName = appName.substring(13);
+        } else if (lowerApp.startsWith('[unproductive] ')) {
+            forcedStatus = 'unproductive';
+            appName = appName.substring(15);
+        } else if (lowerApp.startsWith('[neutral] ')) {
+            forcedStatus = 'neutral';
+            appName = appName.substring(10);
+        }
+
         let isProd = false;
-        if (req.user.settings && req.user.settings.appCategories) {
+        if (forcedStatus === 'productive') {
+            isProd = true;
+        } else if (forcedStatus === 'unproductive' || forcedStatus === 'neutral') {
+            isProd = false;
+        } else if (req.user.settings && req.user.settings.appCategories) {
             // Find if any key in appCategories is a substring of the app name
             isProd = Object.entries(req.user.settings.appCategories).some(([key, val]) => {
                 return val === 'productive' && lowerApp.includes(key.toLowerCase());
@@ -88,7 +104,9 @@ exports.getSummary = asyncHandler(async (req, res) => {
         const minuteIndex = ssDate.getMinutes();
 
         let status = 'unproductive';
-        if (ss.isIdle) {
+        if (forcedStatus === 'neutral') {
+            status = 'idle';
+        } else if (ss.isIdle) {
             status = 'idle';
         } else if (isProd) {
             status = 'productive';
@@ -237,7 +255,7 @@ exports.stopTimer = asyncHandler(async (req, res) => {
 });
 
 exports.addManualTime = asyncHandler(async (req, res) => {
-    const { date, startHour, startMinute, endHour, endMinute, reason } = req.body;
+    const { date, startHour, startMinute, endHour, endMinute, reason, status } = req.body;
     if (startHour === undefined || startMinute === undefined || endHour === undefined || endMinute === undefined || !reason) {
         return res.status(400).json({ success: false, message: 'Please provide start time, end time, and reason' });
     }
@@ -256,7 +274,8 @@ exports.addManualTime = asyncHandler(async (req, res) => {
         return res.status(400).json({ success: false, message: 'End time must be after start time' });
     }
 
-    const manualLabel = `Offline: ${reason}`;
+    const statusTag = status === 'productive' ? '[Productive]' : status === 'neutral' ? '[Neutral]' : '[Unproductive]';
+    const manualLabel = `${statusTag} Offline: ${reason}`;
     
     // Calculate total minutes to insert
     const totalMinutes = Math.floor((end - start) / 60000) + 1; // inclusive of end minute

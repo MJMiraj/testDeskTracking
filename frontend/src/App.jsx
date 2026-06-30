@@ -184,6 +184,7 @@ const DashboardView = ({ summary, fetchSummary }) => {
     const { state } = useContext(AuthContext);
     const [manualTimeModal, setManualTimeModal] = useState(null);
     const [manualReason, setManualReason] = useState("");
+    const [manualStatus, setManualStatus] = useState("productive");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [eodReport, setEodReport] = useState("");
 
@@ -197,10 +198,12 @@ const DashboardView = ({ summary, fetchSummary }) => {
                 startMinute: manualTimeModal.startMinute,
                 endHour: manualTimeModal.endHour,
                 endMinute: manualTimeModal.endMinute,
-                reason: manualReason
+                reason: manualReason,
+                status: manualStatus
             });
             setManualTimeModal(null);
             setManualReason("");
+            setManualStatus("productive");
             if (fetchSummary) fetchSummary();
         } catch (error) {
             alert('Error adding manual time: ' + (error.response?.data?.message || error.message));
@@ -488,8 +491,22 @@ const DashboardView = ({ summary, fetchSummary }) => {
                             onChange={e => setManualReason(e.target.value)} 
                             autoFocus
                         />
+                        <div style={{ display: 'flex', gap: 15, marginBottom: 25 }}>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer' }}>
+                                <input type="radio" name="status" value="productive" checked={manualStatus === 'productive'} onChange={(e) => setManualStatus(e.target.value)} />
+                                <span style={{ color: '#52c41a' }}>Productive</span>
+                            </label>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer' }}>
+                                <input type="radio" name="status" value="neutral" checked={manualStatus === 'neutral'} onChange={(e) => setManualStatus(e.target.value)} />
+                                <span style={{ color: 'gray' }}>Neutral</span>
+                            </label>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer' }}>
+                                <input type="radio" name="status" value="unproductive" checked={manualStatus === 'unproductive'} onChange={(e) => setManualStatus(e.target.value)} />
+                                <span style={{ color: '#ff4d4f' }}>Unproductive</span>
+                            </label>
+                        </div>
                         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-                            <button onClick={() => { setManualTimeModal(null); setManualReason(''); }} style={{ ...btnStyle, background: 'transparent', border: '1px solid gray' }}>Cancel</button>
+                            <button onClick={() => { setManualTimeModal(null); setManualReason(''); setManualStatus('productive'); }} style={{ ...btnStyle, background: 'transparent', border: '1px solid gray' }}>Cancel</button>
                             <button onClick={handleManualSubmit} style={btnStyle} disabled={isSubmitting}>{isSubmitting ? 'Saving...' : 'Save Activity'}</button>
                         </div>
                     </div>
