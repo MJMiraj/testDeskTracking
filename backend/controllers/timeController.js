@@ -40,7 +40,7 @@ exports.getSummary = asyncHandler(async (req, res) => {
     if (screenshots.length > 0) {
         const lastSS = screenshots[0];
         const minsSinceLastSS = (new Date() - new Date(lastSS.createdAt)) / 60000;
-        isTrackingActive = minsSinceLastSS < 3;
+        isTrackingActive = minsSinceLastSS >= 0 && minsSinceLastSS < 3;
     }
 
     const appMap = {};

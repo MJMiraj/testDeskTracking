@@ -2205,7 +2205,7 @@ const MainApp = () => {
             {/* Sidebar */}
             <div className={`sidebar ${isSidebarOpen ? 'mobile-open' : 'mobile-closed'}`}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 35 }}>
-                    <h1 style={{ margin: 0, fontSize: 24, fontWeight: 900, background: 'linear-gradient(90deg, var(--primary-color), #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <h1 style={{ margin: 0, fontSize: 24, fontWeight: 900, color: 'var(--primary-color)', display: 'flex', alignItems: 'center', gap: 10 }}>
                         DeskTime Pro
                     </h1>
                     {/* Mobile Close Button */}
