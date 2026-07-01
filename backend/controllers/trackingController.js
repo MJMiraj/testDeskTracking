@@ -68,20 +68,25 @@ exports.getScreenshots = asyncHandler(async (req, res) => {
 
 // Helper for dynamic DeskTime categorization based on user profile settings
 const categorizeAppDynamic = (windowTitle, userSettings) => {
-    if (!windowTitle) return 'Neutral';
+    if (!windowTitle) return { category: 'Neutral', matchedApp: null };
     const title = windowTitle.toLowerCase();
     
     const appCategories = userSettings?.appCategories || {};
     
     // Check if any of the user's configured app names are in the window title
     for (const [keyword, category] of Object.entries(appCategories)) {
-        if (title.includes(keyword.toLowerCase())) {
+        // Strip common domains and extensions for better fuzzy matching against window titles
+        const cleanKeyword = keyword.toLowerCase().replace(/\.(com|org|net|io|co|us|tv|app|exe)$/, '');
+        if (title.includes(cleanKeyword)) {
             // Capitalize to match expected 'Productive', 'Neutral', 'Unproductive' values
-            return category.charAt(0).toUpperCase() + category.slice(1);
+            return { 
+                category: category.charAt(0).toUpperCase() + category.slice(1), 
+                matchedApp: keyword 
+            };
         }
     }
     
-    return 'Neutral';
+    return { category: 'Neutral', matchedApp: null };
 };
 
 exports.getActivities = asyncHandler(async (req, res) => {
@@ -107,19 +112,26 @@ exports.getActivities = asyncHandler(async (req, res) => {
     
     screenshots.forEach(ss => {
         const title = ss.activeWindow || 'Unknown';
-        // Simplify title (e.g. "Google Chrome - YouTube" -> "YouTube")
-        const parts = title.split(' - ');
-        const simpleName = parts.length > 1 ? parts[parts.length - 1] : parts[0];
+        // Get the category and matched keyword by checking the FULL window title
+        const { category, matchedApp } = categorizeAppDynamic(title, req.user.settings);
         
-        if (!appMap[simpleName]) {
-            appMap[simpleName] = { 
-                name: simpleName, 
+        // If it matches a specific configured app (e.g. "youtube.com"), group by that app name.
+        // Otherwise, fallback to the last part of the window title (usually the browser or base app name).
+        let displayName = matchedApp;
+        if (!displayName) {
+            const parts = title.split(' - ');
+            displayName = parts.length > 1 ? parts[parts.length - 1].trim() : parts[0].trim();
+        }
+        
+        if (!appMap[displayName]) {
+            appMap[displayName] = { 
+                name: displayName, 
                 minutes: 0, 
-                category: categorizeAppDynamic(simpleName, req.user.settings) 
+                category: category 
             };
         }
         // Since we take a screenshot approx every 1 minute, we assume 1 record = 1 min
-        appMap[simpleName].minutes += 1; 
+        appMap[displayName].minutes += 1; 
         totalMinutes += 1;
     });
 
