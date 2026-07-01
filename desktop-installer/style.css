@@ -1,0 +1,184 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+body {
+    background: linear-gradient(135deg, #09090b 0%, #18181b 100%);
+    color: #fff;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-app-region: drag; /* Makes the window draggable */
+    user-select: none;
+}
+
+.glass-panel {
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    flex-direction: column;
+    padding: 30px;
+    position: relative;
+    box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.5);
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    z-index: 10;
+}
+
+.logo {
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+}
+
+.logo svg {
+    color: white;
+}
+
+.header h1 {
+    font-size: 24px;
+    font-weight: 700;
+    background: linear-gradient(to right, #fff, #a1a1aa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 30px;
+}
+
+/* Stunning Animation Rings */
+.animation-container {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ring {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 2px solid transparent;
+}
+
+.ring:nth-child(1) {
+    border-top: 2px solid #3b82f6;
+    border-right: 2px solid #3b82f6;
+    animation: spin 2s linear infinite;
+    filter: drop-shadow(0 0 10px rgba(59, 130, 246, 0.5));
+}
+
+.ring:nth-child(2) {
+    width: 80%;
+    height: 80%;
+    border-bottom: 2px solid #8b5cf6;
+    border-left: 2px solid #8b5cf6;
+    animation: spin-reverse 1.5s linear infinite;
+    filter: drop-shadow(0 0 10px rgba(139, 92, 246, 0.5));
+}
+
+.ring:nth-child(3) {
+    width: 60%;
+    height: 60%;
+    border-top: 2px solid #0ea5e9;
+    animation: spin 1s linear infinite;
+    filter: drop-shadow(0 0 10px rgba(14, 165, 233, 0.5));
+}
+
+.pulse-dot {
+    width: 20px;
+    height: 20px;
+    background: #fff;
+    border-radius: 50%;
+    box-shadow: 0 0 20px #fff;
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes spin-reverse {
+    0% { transform: rotate(360deg); }
+    100% { transform: rotate(0deg); }
+}
+
+@keyframes pulse {
+    0% { transform: scale(0.8); opacity: 0.5; }
+    50% { transform: scale(1.2); opacity: 1; }
+    100% { transform: scale(0.8); opacity: 0.5; }
+}
+
+.status-container {
+    text-align: center;
+}
+
+.status-container h2 {
+    font-size: 22px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #f4f4f5;
+}
+
+.status-container p {
+    font-size: 14px;
+    color: #a1a1aa;
+}
+
+#error-msg {
+    color: #ff4d4f;
+    margin-top: 10px;
+    font-size: 12px;
+}
+
+.progress-bar-container {
+    width: 100%;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    overflow: hidden;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+}
+
+.progress-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899);
+    background-size: 200% 100%;
+    transition: width 0.3s ease;
+    animation: gradient-shift 2s linear infinite;
+}
+
+@keyframes gradient-shift {
+    0% { background-position: 100% 0; }
+    100% { background-position: -100% 0; }
+}

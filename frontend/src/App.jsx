@@ -132,26 +132,96 @@ const ProductivityBar = ({ timelineData, onSelectRange }) => {
 
     const formatTime = (minObj) => `${minObj.hour.toString().padStart(2, '0')}:${minObj.minute.toString().padStart(2, '0')}`;
 
-    return (
-        <div style={{ userSelect: 'none' }} onMouseLeave={() => { if(isDragging) handleMouseUp(); }} onMouseUp={handleMouseUp}>
-            <div style={{ display: 'flex', width: '100%', height: 40, background: 'rgba(255,255,255,0.05)', borderRadius: 6, position: 'relative', overflow: 'hidden' }}>
-                {blocks.map((b, idx) => {
-                    let bg = 'transparent';
-                    if (b.status === 'productive') bg = '#00C49F';
-                    else if (b.status === 'idle') bg = '#555555';
-                    else if (b.status === 'unproductive') bg = '#FF8042';
+    const chartIntervals = useMemo(() => {
+        const chunks = [];
+        for(let i=0; i<144; i++) {
+            const slice = flatMinutes.slice(i*10, (i+1)*10);
+            let prod = 0, neut = 0, unprod = 0, idle = 0, empty = 0;
+            slice.forEach(min => {
+                const st = min.data === 'empty' ? 'empty' : min.data.status;
+                if(st === 'productive') prod++;
+                else if(st === 'neutral') neut++;
+                else if(st === 'unproductive') unprod++;
+                else if(st === 'idle') idle++;
+                else empty++;
+            });
+            const totalTracked = prod + neut + unprod + idle;
+            chunks.push({
+                totalTracked, prod, neut, unprod, idle, empty,
+                index: i
+            });
+        }
+        return chunks;
+    }, [flatMinutes]);
 
-                    return (
-                        <div
-                            key={idx}
-                            title={`${formatTime(b.start)} - ${formatTime(b.end)}\n${b.status.toUpperCase()} ${b.app ? `(${b.app})` : ''}`}
-                            style={{ width: `${(b.length / 1440) * 100}%`, height: '100%', background: bg, cursor: 'default' }}
-                        />
-                    );
-                })}
+    return (
+        <div style={{ userSelect: 'none', display: 'flex', height: 180, position: 'relative' }} onMouseLeave={() => { if(isDragging) handleMouseUp(); }} onMouseUp={handleMouseUp}>
+            {/* Y Axis */}
+            <div style={{ width: 40, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', color: 'gray', fontSize: 10, paddingRight: 10, textAlign: 'right', paddingBottom: 40, paddingTop: 10 }}>
+                <span>100%</span>
+                <span>75%</span>
+                <span>50%</span>
+                <span>25%</span>
+            </div>
+            
+            {/* Chart Area */}
+            <div style={{ flex: 1, position: 'relative', display: 'flex', flexDirection: 'column' }}>
+                {/* Bars Container */}
+                <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', paddingBottom: 5, marginTop: 10 }}>
+                    {chartIntervals.map((chunk, idx) => {
+                        const totalPct = (chunk.totalTracked / 10) * 100;
+                        const prodPct = (chunk.prod / (chunk.totalTracked || 1)) * 100;
+                        const neutPct = (chunk.neut / (chunk.totalTracked || 1)) * 100;
+                        const unprodPct = (chunk.unprod / (chunk.totalTracked || 1)) * 100;
+
+                        return (
+                            <div key={idx} style={{ flex: 1, height: '100%', display: 'flex', alignItems: 'flex-end', padding: '0 1px' }}>
+                                {chunk.totalTracked > 0 && (
+                                    <div style={{ width: '100%', height: `${totalPct}%`, display: 'flex', flexDirection: 'column-reverse' }}>
+                                        <div style={{ width: '100%', height: `${prodPct}%`, background: '#52c41a' }} />
+                                        <div style={{ width: '100%', height: `${neutPct}%`, background: '#8c8c8c' }} />
+                                        <div style={{ width: '100%', height: `${unprodPct}%`, background: '#ff4d4f' }} />
+                                        <div style={{ width: '100%', height: `${(chunk.idle / chunk.totalTracked) * 100}%`, background: 'rgba(255,255,255,0.2)' }} />
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
                 
-                {/* Drag Overlay */}
-                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex' }}>
+                {/* Bottom Timeline Bar */}
+                <div style={{ height: 15, display: 'flex', borderRadius: 4, overflow: 'hidden' }}>
+                    {chartIntervals.map((chunk, idx) => {
+                        let bg = 'transparent';
+                        if (chunk.totalTracked > 0) bg = '#0088FE'; // DeskTime blue
+                        else if (chunk.empty === 10) bg = 'transparent'; 
+                        else bg = 'rgba(255,255,255,0.1)';
+
+                        return (
+                            <div key={idx} style={{ 
+                                flex: 1, 
+                                height: '100%', 
+                                background: bg,
+                                borderTop: chunk.totalTracked === 0 ? '1px dashed rgba(255,255,255,0.2)' : 'none',
+                                borderBottom: chunk.totalTracked === 0 ? '1px dashed rgba(255,255,255,0.2)' : 'none',
+                                boxSizing: 'border-box'
+                            }} />
+                        );
+                    })}
+                </div>
+                
+                {/* X Axis Ticks */}
+                <div style={{ height: 20, display: 'flex', justifyContent: 'space-between', color: 'gray', fontSize: 10, marginTop: 10 }}>
+                    {Array.from({length: 13}).map((_, i) => {
+                        const h = i * 2;
+                        const ampm = h >= 12 ? 'PM' : 'AM';
+                        const displayH = h > 12 ? h - 12 : (h === 0 ? 12 : h);
+                        return <span key={i}>{displayH} {ampm}</span>;
+                    })}
+                </div>
+
+                {/* Drag Overlay covering both bars */}
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 30, display: 'flex' }}>
                     {flatMinutes.map(min => {
                         const isSelectable = min.data === 'empty' || min.data.status === 'idle';
                         let isSelected = false;
@@ -170,10 +240,6 @@ const ProductivityBar = ({ timelineData, onSelectRange }) => {
                         );
                     })}
                 </div>
-            </div>
-            {/* Ticks */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, color: 'gray', fontSize: 10 }}>
-                {Array.from({length: 25}).map((_, i) => i % 2 === 0 ? <span key={i}>{i.toString().padStart(2, '0')}:00</span> : <span key={i} style={{visibility:'hidden'}}>|</span>)}
             </div>
         </div>
     );
@@ -285,6 +351,35 @@ const DashboardView = ({ summary, fetchSummary }) => {
                 }}>
                     Download CSV Report
                 </button>
+            </div>
+
+            {/* Productivity Bar - Full Width (DeskTime Style) */}
+            <div style={{ ...cardStyle, width: '100%', height: 'auto', marginBottom: 25, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
+                    <h4 style={{ margin: 0, fontSize: 16 }}>Productivity Timeline</h4>
+                    <div style={{ display: 'flex', gap: 15, fontSize: 12 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 10, height: 10, background: '#52c41a', borderRadius: '50%' }}></span> Productive</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 10, height: 10, background: '#8c8c8c', borderRadius: '50%' }}></span> Neutral</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 10, height: 10, background: '#ff4d4f', borderRadius: '50%' }}></span> Unproductive</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 10, height: 10, background: 'rgba(255,255,255,0.1)', borderRadius: '50%' }}></span> Idle</div>
+                    </div>
+                </div>
+                
+                <ProductivityBar 
+                    timelineData={timelineData} 
+                    onSelectRange={(startMin, endMin) => {
+                        setManualTimeModal({ 
+                            startHour: Math.floor(startMin / 60),
+                            startMinute: startMin % 60,
+                            endHour: Math.floor(endMin / 60),
+                            endMinute: endMin % 60,
+                            date: new Date().toISOString().split('T')[0] 
+                        });
+                    }} 
+                />
+                {!timelineData && (
+                    <div style={{ color: 'gray', textAlign: 'center', padding: '20px 0' }}>Loading timeline...</div>
+                )}
             </div>
 
             {/* Stat Cards */}
@@ -409,30 +504,6 @@ const DashboardView = ({ summary, fetchSummary }) => {
             {/* Charts Section */}
             <div className="charts-grid" style={{ marginTop: 30, display: 'flex', gap: 20, flexDirection: 'column' }}>
                 
-                {/* Productivity Bar - Full Width */}
-                <div style={{ ...cardStyle, width: '100%', height: 'auto' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                        <h4 style={{ margin: 0 }}>Productivity Bar</h4>
-                        <span style={{ fontSize: 12, color: 'gray' }}>Click & Drag empty/gray blocks to log offline time</span>
-                    </div>
-                    
-                    <ProductivityBar 
-                        timelineData={timelineData} 
-                        onSelectRange={(startMin, endMin) => {
-                            setManualTimeModal({ 
-                                startHour: Math.floor(startMin / 60),
-                                startMinute: startMin % 60,
-                                endHour: Math.floor(endMin / 60),
-                                endMinute: endMin % 60,
-                                date: new Date().toISOString().split('T')[0] 
-                            });
-                        }} 
-                    />
-                    {!timelineData && (
-                        <div style={{ color: 'gray', textAlign: 'center', padding: '20px 0' }}>Loading timeline...</div>
-                    )}
-                </div>
-
                 {/* Second Row: Bar Chart and Pie Chart */}
                 <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', width: '100%' }}>
                     {/* Bar Chart */}
@@ -1488,15 +1559,15 @@ const ActivitiesView = () => {
                 <h4 style={{ marginBottom: 15, color: 'gray' }}>Productivity Breakdown</h4>
                 
                 <div style={{ display: 'flex', width: '100%', height: 25, borderRadius: 12, overflow: 'hidden', marginBottom: 15 }}>
-                    <div style={{ width: `${getProgress(productive)}%`, background: '#00C49F' }} />
-                    <div style={{ width: `${getProgress(neutral)}%`, background: '#FFBB28' }} />
-                    <div style={{ width: `${getProgress(unproductive)}%`, background: '#FF8042' }} />
+                    <div style={{ width: `${getProgress(productive)}%`, background: '#52c41a' }} />
+                    <div style={{ width: `${getProgress(neutral)}%`, background: '#8c8c8c' }} />
+                    <div style={{ width: `${getProgress(unproductive)}%`, background: '#ff4d4f' }} />
                 </div>
                 
                 <div style={{ display: 'flex', gap: 20 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><div style={{ width: 12, height: 12, borderRadius: '50%', background: '#00C49F' }}></div> Productive ({Math.round(getProgress(productive))}%)</div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><div style={{ width: 12, height: 12, borderRadius: '50%', background: '#FFBB28' }}></div> Neutral ({Math.round(getProgress(neutral))}%)</div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><div style={{ width: 12, height: 12, borderRadius: '50%', background: '#FF8042' }}></div> Unproductive ({Math.round(getProgress(unproductive))}%)</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><div style={{ width: 12, height: 12, borderRadius: '50%', background: '#52c41a' }}></div> Productive ({Math.round(getProgress(productive))}%)</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><div style={{ width: 12, height: 12, borderRadius: '50%', background: '#8c8c8c' }}></div> Neutral ({Math.round(getProgress(neutral))}%)</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><div style={{ width: 12, height: 12, borderRadius: '50%', background: '#ff4d4f' }}></div> Unproductive ({Math.round(getProgress(unproductive))}%)</div>
                 </div>
             </div>
 
@@ -1514,7 +1585,7 @@ const ActivitiesView = () => {
                         {activities.map((a, idx) => (
                             <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                                 <td style={{ padding: 15, fontWeight: 'bold' }}>{a.name}</td>
-                                <td style={{ padding: 15, color: a.category === 'Productive' ? '#00C49F' : a.category === 'Unproductive' ? '#FF8042' : '#FFBB28', fontWeight: 'bold' }}>{a.category}</td>
+                                <td style={{ padding: 15, color: a.category === 'Productive' ? '#52c41a' : a.category === 'Unproductive' ? '#ff4d4f' : '#8c8c8c', fontWeight: 'bold' }}>{a.category}</td>
                                 <td style={{ padding: 15 }}>{a.minutes} min</td>
                                 <td style={{ padding: 15 }}>{getProgress(a.minutes).toFixed(1)}%</td>
                             </tr>
@@ -1538,7 +1609,8 @@ const MainApp = () => {
 
     const fetchData = useCallback(async () => {
         try {
-            const sumRes = await api.get(`/time/summary${selectedDate ? `?date=${selectedDate}` : ''}`);
+            const tzOffset = new Date().getTimezoneOffset();
+            const sumRes = await api.get(`/time/summary${selectedDate ? `?date=${selectedDate}&tzOffset=${tzOffset}` : `?tzOffset=${tzOffset}`}`);
             setSummary(sumRes.data.data);
             const ssRes = await api.get('/tracking/screenshots');
             setScreenshots(ssRes.data.data);

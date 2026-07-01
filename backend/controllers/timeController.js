@@ -12,11 +12,18 @@ exports.getEntries = asyncHandler(async (req, res) => {
 });
 
 exports.getSummary = asyncHandler(async (req, res) => {
-    let today = new Date();
+    let now = new Date();
     if (req.query.date) {
-        today = new Date(req.query.date);
+        now = new Date(req.query.date);
     }
-    today.setHours(0, 0, 0, 0);
+    
+    const serverOffset = now.getTimezoneOffset();
+    const userOffset = req.query.tzOffset ? parseInt(req.query.tzOffset) : serverOffset;
+    
+    // Calculate user's midnight in absolute time
+    let userLocalTime = new Date(now.getTime() + (serverOffset - userOffset) * 60000);
+    userLocalTime.setHours(0, 0, 0, 0);
+    let today = new Date(userLocalTime.getTime() - (serverOffset - userOffset) * 60000);
     
     let tomorrow = new Date(today);
     tomorrow.setDate(today.getDate() + 1);
@@ -100,8 +107,9 @@ exports.getSummary = asyncHandler(async (req, res) => {
         }
 
         const ssDate = new Date(ss.createdAt);
-        const hourIndex = ssDate.getHours();
-        const minuteIndex = ssDate.getMinutes();
+        const userDate = new Date(ssDate.getTime() + (serverOffset - userOffset) * 60000);
+        const hourIndex = userDate.getHours();
+        const minuteIndex = userDate.getMinutes();
 
         let status = 'unproductive';
         if (forcedStatus === 'neutral') {
@@ -127,9 +135,10 @@ exports.getSummary = asyncHandler(async (req, res) => {
         }
     });
 
-    const now = new Date();
-    const currentHour = now.getHours();
-    const currentMinute = now.getMinutes();
+    const nowForData = new Date();
+    const userNowData = new Date(nowForData.getTime() + (serverOffset - userOffset) * 60000);
+    const currentHour = userNowData.getHours();
+    const currentMinute = userNowData.getMinutes();
 
     hourlyData.forEach((h, index) => {
         const total = h.idle + h.productive + h.unproductive;
@@ -188,7 +197,9 @@ exports.getSummary = asyncHandler(async (req, res) => {
         if (entryDate >= today) todaySeconds += entry.durationSeconds;
         if (entryDate >= weekStart) weekSeconds += entry.durationSeconds;
 
-        const dateString = entryDate.toISOString().split('T')[0];
+        const userEntryDate = new Date(entryDate.getTime() + (serverOffset - userOffset) * 60000);
+        const dateString = userEntryDate.toISOString().split('T')[0];
+        
         if (!dailyMap[dateString]) dailyMap[dateString] = 0;
         dailyMap[dateString] += entry.durationSeconds;
     });

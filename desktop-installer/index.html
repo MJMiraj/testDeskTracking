@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Installing DeskTime Pro</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="glass-panel">
+        <div class="header">
+            <div class="logo">
+                <svg viewBox="0 0 24 24" width="40" height="40" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                </svg>
+            </div>
+            <h1>DeskTime Pro</h1>
+        </div>
+
+        <div class="main-content">
+            <div class="animation-container">
+                <div class="ring"></div>
+                <div class="ring"></div>
+                <div class="ring"></div>
+                <div class="pulse-dot"></div>
+            </div>
+            
+            <div class="status-container">
+                <h2 id="status-title">Initializing...</h2>
+                <p id="status-desc">Preparing the best tracking experience for you.</p>
+                <p id="error-msg"></p>
+            </div>
+        </div>
+
+        <div class="progress-bar-container">
+            <div class="progress-bar">
+                <div class="progress-fill"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { ipcRenderer } = require('electron');
+
+        const title = document.getElementById('status-title');
+        const desc = document.getElementById('status-desc');
+        const errorMsg = document.getElementById('error-msg');
+        const progressFill = document.querySelector('.progress-fill');
+        
+        let progress = 0;
+
+        // Auto increment progress visually to look cool
+        const progressInterval = setInterval(() => {
+            progress += Math.random() * 2;
+            if(progress > 95) progress = 95; // hold at 95% until done
+            progressFill.style.width = `${progress}%`;
+        }, 300);
+
+        setTimeout(() => {
+            ipcRenderer.send('start-install');
+        }, 1500);
+
+        ipcRenderer.on('install-progress', (event, msg) => {
+            title.innerText = msg;
+            
+            if(msg.includes('Extracting')) {
+                desc.innerText = 'Unpacking files to your local drive...';
+            } else if(msg.includes('shortcuts')) {
+                desc.innerText = 'Setting up desktop access...';
+                progress = 70;
+            } else if (msg.includes('Finishing')) {
+                desc.innerText = 'Cleaning up installation files...';
+                progress = 90;
+            } else if (msg.includes('Launching')) {
+                desc.innerText = 'You are ready to go!';
+                progress = 100;
+                progressFill.style.width = '100%';
+                clearInterval(progressInterval);
+            }
+        });
+
+        ipcRenderer.on('install-error', (event, err) => {
+            clearInterval(progressInterval);
+            title.innerText = 'Installation Failed';
+            desc.innerText = 'Something went wrong during setup.';
+            errorMsg.innerText = err;
+            progressFill.style.background = '#ff4d4f';
+            progressFill.style.width = '100%';
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,40 @@
+{
+  "name": "desktop-installer",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "node build.js"
+  },
+  "build": {
+    "appId": "com.desktimepro.installer",
+    "productName": "Install DeskTime Pro",
+    "asar": false,
+    "directories": {
+      "output": "release"
+    },
+    "win": {
+      "target": "portable",
+      "icon": "../desktop-app/build/icon.ico"
+    },
+    "portable": {
+      "requestExecutionLevel": "admin",
+      "splashImage": null
+    },
+    "extraResources": [
+      {
+        "from": "app.zip",
+        "to": "app.zip"
+      }
+    ]
+  },
+  "dependencies": {
+    "adm-zip": "^0.5.18",
+    "windows-shortcuts": "^0.1.6"
+  },
+  "devDependencies": {
+    "electron": "^25.3.0",
+    "electron-builder": "^26.15.3"
+  }
+}
