@@ -69,14 +69,23 @@ exports.getScreenshots = asyncHandler(async (req, res) => {
 // Helper for dynamic DeskTime categorization based on user profile settings
 const categorizeAppDynamic = (windowTitle, userSettings) => {
     if (!windowTitle) return { category: 'Neutral', matchedApp: null };
-    const title = windowTitle.toLowerCase();
+    
+    // Remove common browser suffixes so a rule like "chrome" doesn't override specific websites
+    let title = windowTitle.toLowerCase();
+    title = title.replace(/\s*-\s*(google chrome|mozilla firefox|microsoft edge|safari|opera|brave)$/i, '');
     
     const appCategories = userSettings?.appCategories || {};
     
+    // Sort categories by keyword length descending to prioritize more specific matches
+    const sortedCategories = Object.entries(appCategories).sort((a, b) => b[0].length - a[0].length);
+    
     // Check if any of the user's configured app names are in the window title
-    for (const [keyword, category] of Object.entries(appCategories)) {
+    for (const [keyword, category] of sortedCategories) {
         // Strip common domains and extensions for better fuzzy matching against window titles
-        const cleanKeyword = keyword.toLowerCase().replace(/\.(com|org|net|io|co|us|tv|app|exe)$/, '');
+        const cleanKeyword = keyword.toLowerCase().trim().replace(/\.(com|org|net|io|co|us|tv|app|exe)$/, '');
+        
+        if (!cleanKeyword) continue; // Prevent empty keywords from matching everything
+        
         if (title.includes(cleanKeyword)) {
             // Capitalize to match expected 'Productive', 'Neutral', 'Unproductive' values
             return { 
