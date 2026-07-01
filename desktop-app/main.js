@@ -5,6 +5,7 @@ const activeWin = require('./getActiveWindow');
 const axios = require('axios');
 const FormData = require('form-data');
 const fs = require('fs');
+const Jimp = require('jimp');
 
 let mainWindow;
 let tray = null;
@@ -12,6 +13,8 @@ let trackingInterval;
 let currentToken = null;
 let currentTimeEntryId = null;
 let userIdleTimeout = 60;
+let blurScreenshots = false;
+let screenshotIntervalMinutes = 10;
 
 function createWindow() {
     mainWindow = new BrowserWindow({
@@ -46,12 +49,6 @@ function createWindow() {
 app.whenReady().then(() => {
     createWindow();
 
-    // Auto-start on login
-    app.setLoginItemSettings({
-        openAtLogin: true,
-        openAsHidden: true
-    });
-
     // Create System Tray
     const iconPath = path.join(__dirname, 'build', 'icon.ico');
     tray = new Tray(iconPath);
@@ -83,9 +80,20 @@ ipcMain.on('start-tracking', async (event, { token, timeEntryId }) => {
         const res = await axios.get('https://testdesktracking.onrender.com/api/user/me', {
             headers: { Authorization: `Bearer ${token}` }
         });
-        if (res.data && res.data.data && res.data.data.settings && res.data.data.settings.idleTimeout) {
-            userIdleTimeout = parseInt(res.data.data.settings.idleTimeout, 10);
-            console.log(`Loaded idle timeout: ${userIdleTimeout} seconds`);
+        if (res.data && res.data.data && res.data.data.settings) {
+            const settings = res.data.data.settings;
+            if (settings.idleTimeout) userIdleTimeout = parseInt(settings.idleTimeout, 10);
+            if (settings.blurScreenshots !== undefined) blurScreenshots = settings.blurScreenshots;
+            if (settings.screenshotInterval) screenshotIntervalMinutes = parseInt(settings.screenshotInterval, 10);
+            
+            // Sync launch on boot
+            if (settings.launchOnBoot !== undefined) {
+                app.setLoginItemSettings({
+                    openAtLogin: settings.launchOnBoot,
+                    openAsHidden: true
+                });
+            }
+            console.log(`Loaded settings: idle=${userIdleTimeout}s, blur=${blurScreenshots}, interval=${screenshotIntervalMinutes}m`);
         }
     } catch (e) {
         console.error('Failed to fetch user settings for idle timeout', e.message);
@@ -94,8 +102,32 @@ ipcMain.on('start-tracking', async (event, { token, timeEntryId }) => {
     console.log(`Started Tracking for Entry ID: ${timeEntryId}`);
     captureAndUpload(); // Initial capture
 
-    // Set interval to 1 minute (60000 ms) for production/testing
-    trackingInterval = setInterval(captureAndUpload, 60000);
+    // Set interval based on settings
+    trackingInterval = setInterval(captureAndUpload, screenshotIntervalMinutes * 60000);
+});
+
+ipcMain.on('update-settings', (event, settings) => {
+    console.log("Settings updated from UI");
+    if (settings.idleTimeout) userIdleTimeout = parseInt(settings.idleTimeout, 10);
+    if (settings.blurScreenshots !== undefined) blurScreenshots = settings.blurScreenshots;
+    
+    if (settings.launchOnBoot !== undefined) {
+        app.setLoginItemSettings({
+            openAtLogin: settings.launchOnBoot,
+            openAsHidden: true
+        });
+    }
+
+    if (settings.screenshotInterval) {
+        const newInterval = parseInt(settings.screenshotInterval, 10);
+        if (newInterval !== screenshotIntervalMinutes) {
+            screenshotIntervalMinutes = newInterval;
+            if (trackingInterval) {
+                clearInterval(trackingInterval);
+                trackingInterval = setInterval(captureAndUpload, screenshotIntervalMinutes * 60000);
+            }
+        }
+    }
 });
 
 ipcMain.on('stop-tracking', () => {
@@ -121,6 +153,12 @@ async function captureAndUpload() {
         // 3. Capture Screenshot natively (No browser popups!)
         const imgPath = path.join(app.getPath('temp'), `ss_${Date.now()}.png`);
         await screenshot({ filename: imgPath });
+
+        if (blurScreenshots) {
+            const image = await Jimp.read(imgPath);
+            image.blur(15);
+            await image.writeAsync(imgPath);
+        }
 
         // 4. Upload to Backend API
         const form = new FormData();

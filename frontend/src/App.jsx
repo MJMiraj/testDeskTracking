@@ -1281,16 +1281,35 @@ const SettingsView = () => {
     const { state, dispatch } = useContext(AuthContext);
     const { theme, saveTheme } = useContext(ThemeContext);
 
+    const [activeTab, setActiveTab] = useState('general');
+
+    // State for existing settings
     const [idleTimeout, setIdleTimeout] = useState(state.user?.settings?.idleTimeout || 60);
     const [hourlyRate, setHourlyRate] = useState(state.user?.settings?.hourlyRate || 0);
     const [dailyGoal, setDailyGoal] = useState(state.user?.settings?.dailyGoal || 8);
     const [categoriesStr, setCategoriesStr] = useState(JSON.stringify(state.user?.settings?.appCategories || {}, null, 2));
 
+    // State for new settings
+    const [autoStart, setAutoStart] = useState(state.user?.settings?.autoStart || false);
+    const [launchOnBoot, setLaunchOnBoot] = useState(state.user?.settings?.launchOnBoot || false);
+    const [blurScreenshots, setBlurScreenshots] = useState(state.user?.settings?.blurScreenshots || false);
+    const [screenshotInterval, setScreenshotInterval] = useState(state.user?.settings?.screenshotInterval || 10);
+    const [currency, setCurrency] = useState(state.user?.settings?.currency || '$');
+
     const saveSettings = async () => {
         try {
             const parsed = JSON.parse(categoriesStr);
-            const res = await api.put('/user/settings', { settings: { idleTimeout, hourlyRate, dailyGoal, appCategories: parsed } });
+            const newSettings = { 
+                idleTimeout, hourlyRate, dailyGoal, appCategories: parsed,
+                autoStart, launchOnBoot, blurScreenshots, screenshotInterval, currency
+            };
+            const res = await api.put('/user/settings', { settings: newSettings });
             dispatch({ type: 'LOGIN_SUCCESS', payload: { ...state, user: { ...state.user, settings: res.data.data } } });
+            
+            // Notify Desktop App if it's running
+            if (window.electronAPI && window.electronAPI.updateSettings) {
+                window.electronAPI.updateSettings(newSettings);
+            }
             alert("Settings saved successfully!");
         } catch (e) {
             alert("Error saving settings. Ensure JSON is valid.");
@@ -1306,83 +1325,175 @@ const SettingsView = () => {
         forest: { name: 'Enchanted Forest', mode: 'forest', primaryColor: '#2eb62c', backgroundColor: '#142114', textColor: '#e6f0e6', emoji: '🌲' }
     };
 
+    const tabs = [
+        { id: 'general', name: 'General', icon: <SettingsIcon size={18} /> },
+        { id: 'productivity', name: 'Productivity', icon: <Target size={18} /> },
+        { id: 'privacy', name: 'Privacy & Screenshots', icon: <Shield size={18} /> },
+        { id: 'billing', name: 'Billing', icon: <DollarSign size={18} /> },
+        { id: 'appearance', name: 'Appearance', icon: <Sparkles size={18} /> },
+        { id: 'account', name: 'Account', icon: <Users size={18} /> },
+    ];
+
     return (
-        <div className="fade-in" style={{ paddingBottom: 50 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 30 }}>
-                <div>
-                    <h2 style={{ fontSize: 32, fontWeight: 800, margin: 0, background: `linear-gradient(90deg, ${theme.primaryColor}, #fff)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Settings & Themes</h2>
-                    <p style={{ color: 'gray', margin: '5px 0 0 0' }}>Personalize your tracking experience and UI.</p>
-                </div>
-                <button style={{ ...btnStyle, padding: '10px 20px', borderRadius: 25 }} onClick={saveSettings}>
-                    <Sparkles size={16} style={{ marginRight: 8, verticalAlign: 'middle' }} /> 
-                    Save All Changes
-                </button>
+        <div className="fade-in" style={{ paddingBottom: 50, display: 'flex', gap: 30, alignItems: 'flex-start' }}>
+            {/* Sidebar Navigation */}
+            <div style={{ width: 250, display: 'flex', flexDirection: 'column', gap: 5, background: 'rgba(255,255,255,0.02)', padding: 20, borderRadius: 12, border: '1px solid rgba(255,255,255,0.05)' }}>
+                <h2 style={{ fontSize: 24, fontWeight: 800, marginBottom: 20 }}>Settings</h2>
+                {tabs.map(t => (
+                    <button 
+                        key={t.id} 
+                        onClick={() => setActiveTab(t.id)}
+                        style={{
+                            ...navBtn(activeTab === t.id),
+                            justifyContent: 'flex-start', padding: '12px 15px', borderRadius: 8,
+                            backgroundColor: activeTab === t.id ? `${theme.primaryColor}20` : 'transparent',
+                            color: activeTab === t.id ? theme.primaryColor : 'inherit',
+                            fontWeight: activeTab === t.id ? 'bold' : 'normal',
+                            transition: 'all 0.2s'
+                        }}
+                    >
+                        {t.icon} <span style={{marginLeft: 10}}>{t.name}</span>
+                    </button>
+                ))}
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 30 }}>
-                {/* Themes Section */}
-                <div style={{ ...cardStyle }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-                        <ImageIcon size={20} color={theme.primaryColor} />
-                        <h3 style={{ margin: 0 }}>Appearance</h3>
-                    </div>
-                    
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 20 }}>
-                        {Object.values(themes).map((t) => (
-                            <div 
-                                key={t.mode}
-                                onClick={() => saveTheme(t)} 
-                                style={{ 
-                                    ...themeCard(theme.mode === t.mode ? t.primaryColor : 'transparent', t.backgroundColor, t.textColor),
-                                    position: 'relative',
-                                    transform: theme.mode === t.mode ? 'translateY(-5px)' : 'none',
-                                    transition: 'all 0.3s ease',
-                                    boxShadow: theme.mode === t.mode ? `0 10px 20px ${t.primaryColor}40` : '0 4px 10px rgba(0,0,0,0.1)'
-                                }}
-                            >
-                                {theme.mode === t.mode && (
-                                    <div style={{ position: 'absolute', top: 10, right: 10, color: t.primaryColor }}>
-                                        <Target size={20} />
-                                    </div>
-                                )}
-                                <div style={{ fontSize: 40, marginBottom: 15 }}>{t.emoji}</div>
-                                <div style={{ fontSize: 16 }}>{t.name}</div>
+            {/* Main Content Area */}
+            <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 30 }}>
+                    <h2 style={{ fontSize: 28, margin: 0, fontWeight: 700 }}>
+                        {tabs.find(t => t.id === activeTab)?.name}
+                    </h2>
+                    <button style={{ ...btnStyle, padding: '10px 20px', borderRadius: 25 }} onClick={saveSettings}>
+                        <Sparkles size={16} style={{ marginRight: 8, verticalAlign: 'middle' }} />
+                        Save All Changes
+                    </button>
+                </div>
+
+                {activeTab === 'general' && (
+                    <div style={{ ...cardStyle, display: 'flex', flexDirection: 'column', gap: 20 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                            <div>
+                                <h4 style={{ margin: 0 }}>Launch on System Startup</h4>
+                                <small style={{ color: 'gray' }}>Open DeskTime when Windows starts</small>
                             </div>
-                        ))}
-                    </div>
-                </div>
-
-                {/* DeskTime Settings Section */}
-                <div style={{ ...cardStyle }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-                        <Timer size={20} color={theme.primaryColor} />
-                        <h3 style={{ margin: 0 }}>DeskTime Tracking Rules</h3>
-                    </div>
-                    
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 20, marginBottom: 30 }}>
-                        <div style={{ background: 'rgba(255,255,255,0.02)', padding: 20, borderRadius: 12, border: '1px solid rgba(255,255,255,0.05)' }}>
-                            <label style={{ display: 'block', marginBottom: 10, fontWeight: 'bold' }}><Coffee size={16} style={{verticalAlign:'middle', marginRight: 5}}/> Idle Timeout (Seconds)</label>
+                            <input type="checkbox" checked={launchOnBoot} onChange={e => setLaunchOnBoot(e.target.checked)} style={{ transform: 'scale(1.5)', accentColor: theme.primaryColor }} />
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                            <div>
+                                <h4 style={{ margin: 0 }}>Auto-start Tracking</h4>
+                                <small style={{ color: 'gray' }}>Automatically begin tracking when the app opens</small>
+                            </div>
+                            <input type="checkbox" checked={autoStart} onChange={e => setAutoStart(e.target.checked)} style={{ transform: 'scale(1.5)', accentColor: theme.primaryColor }} />
+                        </div>
+                        <div style={{ padding: '15px 0' }}>
+                            <h4 style={{ margin: '0 0 10px 0' }}>Idle Timeout (Seconds)</h4>
+                            <small style={{ color: 'gray', display: 'block', marginBottom: 10 }}>Time before you are marked as idle/away.</small>
                             <input type="number" style={inputStyle} value={idleTimeout} onChange={e => setIdleTimeout(Number(e.target.value))} />
-                            <small style={{ color: 'gray', display: 'block', marginTop: 8 }}>Time before you are marked as idle/away.</small>
-                        </div>
-                        <div style={{ background: 'rgba(255,255,255,0.02)', padding: 20, borderRadius: 12, border: '1px solid rgba(255,255,255,0.05)' }}>
-                            <label style={{ display: 'block', marginBottom: 10, fontWeight: 'bold' }}><DollarSign size={16} style={{verticalAlign:'middle', marginRight: 5}}/> Hourly Rate ($)</label>
-                            <input type="number" style={inputStyle} value={hourlyRate} onChange={e => setHourlyRate(Number(e.target.value))} />
-                            <small style={{ color: 'gray', display: 'block', marginTop: 8 }}>Used to calculate your daily earnings.</small>
-                        </div>
-                        <div style={{ background: 'rgba(255,255,255,0.02)', padding: 20, borderRadius: 12, border: '1px solid rgba(255,255,255,0.05)' }}>
-                            <label style={{ display: 'block', marginBottom: 10, fontWeight: 'bold' }}><Target size={16} style={{verticalAlign:'middle', marginRight: 5}}/> Daily Goal (Hours)</label>
-                            <input type="number" style={inputStyle} value={dailyGoal} onChange={e => setDailyGoal(Number(e.target.value))} />
-                            <small style={{ color: 'gray', display: 'block', marginTop: 8 }}>Target productive hours per day.</small>
                         </div>
                     </div>
+                )}
 
-                    <div style={{ background: 'rgba(255,255,255,0.02)', padding: 20, borderRadius: 12, border: '1px solid rgba(255,255,255,0.05)' }}>
-                        <label style={{ display: 'block', marginBottom: 10, fontWeight: 'bold' }}><ListTodo size={16} style={{verticalAlign:'middle', marginRight: 5}}/> App Categorization (JSON)</label>
-                        <p style={{ color: 'gray', fontSize: 13, marginBottom: 15 }}>Map app names (lowercase) to categories: "productive", "neutral", "unproductive".</p>
-                        <textarea style={{ ...inputStyle, height: 180, fontFamily: 'monospace', backgroundColor: 'rgba(0,0,0,0.2)' }} value={categoriesStr} onChange={e => setCategoriesStr(e.target.value)}></textarea>
+                {activeTab === 'productivity' && (
+                    <div style={{ ...cardStyle, display: 'flex', flexDirection: 'column', gap: 20 }}>
+                        <div>
+                            <h4 style={{ margin: '0 0 10px 0' }}>Daily Goal (Hours)</h4>
+                            <input type="number" style={{ ...inputStyle, width: 200 }} value={dailyGoal} onChange={e => setDailyGoal(Number(e.target.value))} />
+                        </div>
+                        <div style={{ marginTop: 20 }}>
+                            <h4 style={{ margin: '0 0 10px 0' }}>App Categorization (JSON)</h4>
+                            <p style={{ color: 'gray', fontSize: 13, marginBottom: 15 }}>Map app names to categories: "productive", "neutral", "unproductive".</p>
+                            <textarea style={{ ...inputStyle, height: 200, fontFamily: 'monospace', backgroundColor: 'rgba(0,0,0,0.2)' }} value={categoriesStr} onChange={e => setCategoriesStr(e.target.value)}></textarea>
+                        </div>
                     </div>
-                </div>
+                )}
+
+                {activeTab === 'privacy' && (
+                    <div style={{ ...cardStyle, display: 'flex', flexDirection: 'column', gap: 20 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                            <div>
+                                <h4 style={{ margin: 0 }}>Blur Screenshots</h4>
+                                <small style={{ color: 'gray' }}>Obscure text and sensitive data in screenshots for privacy</small>
+                            </div>
+                            <input type="checkbox" checked={blurScreenshots} onChange={e => setBlurScreenshots(e.target.checked)} style={{ transform: 'scale(1.5)', accentColor: theme.primaryColor }} />
+                        </div>
+                        <div style={{ padding: '15px 0' }}>
+                            <h4 style={{ margin: '0 0 10px 0' }}>Screenshot Interval (Minutes)</h4>
+                            <select style={{ ...inputStyle, width: 200 }} value={screenshotInterval} onChange={e => setScreenshotInterval(Number(e.target.value))}>
+                                <option value={3} style={{color:'black'}}>Every 3 minutes</option>
+                                <option value={5} style={{color:'black'}}>Every 5 minutes</option>
+                                <option value={10} style={{color:'black'}}>Every 10 minutes</option>
+                                <option value={15} style={{color:'black'}}>Every 15 minutes</option>
+                                <option value={30} style={{color:'black'}}>Every 30 minutes</option>
+                            </select>
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'billing' && (
+                    <div style={{ ...cardStyle, display: 'flex', flexDirection: 'column', gap: 20 }}>
+                        <div style={{ display: 'flex', gap: 20 }}>
+                            <div style={{ flex: 1 }}>
+                                <h4 style={{ margin: '0 0 10px 0' }}>Currency Symbol</h4>
+                                <input type="text" style={inputStyle} value={currency} onChange={e => setCurrency(e.target.value)} />
+                            </div>
+                            <div style={{ flex: 1 }}>
+                                <h4 style={{ margin: '0 0 10px 0' }}>Hourly Rate</h4>
+                                <input type="number" style={inputStyle} value={hourlyRate} onChange={e => setHourlyRate(Number(e.target.value))} />
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'appearance' && (
+                    <div style={{ ...cardStyle }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 20 }}>
+                            {Object.values(themes).map((t) => (
+                                <div 
+                                    key={t.mode}
+                                    onClick={() => saveTheme(t)} 
+                                    style={{ 
+                                        ...themeCard(theme.mode === t.mode ? t.primaryColor : 'transparent', t.backgroundColor, t.textColor),
+                                        position: 'relative',
+                                        transform: theme.mode === t.mode ? 'translateY(-5px)' : 'none',
+                                        transition: 'all 0.3s ease',
+                                        boxShadow: theme.mode === t.mode ? `0 10px 20px ${t.primaryColor}40` : '0 4px 10px rgba(0,0,0,0.1)'
+                                    }}
+                                >
+                                    {theme.mode === t.mode && (
+                                        <div style={{ position: 'absolute', top: 10, right: 10, color: t.primaryColor }}>
+                                            <Target size={20} />
+                                        </div>
+                                    )}
+                                    <div style={{ fontSize: 40, marginBottom: 15 }}>{t.emoji}</div>
+                                    <div style={{ fontSize: 16 }}>{t.name}</div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'account' && (
+                    <div style={{ ...cardStyle }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
+                            <div style={{ display: 'flex', gap: 20 }}>
+                                <div style={{ flex: 1 }}>
+                                    <h4 style={{ margin: '0 0 10px 0' }}>Username</h4>
+                                    <input type="text" style={{ ...inputStyle, opacity: 0.7 }} value={state.user?.username || ''} disabled />
+                                </div>
+                                <div style={{ flex: 1 }}>
+                                    <h4 style={{ margin: '0 0 10px 0' }}>Email</h4>
+                                    <input type="email" style={{ ...inputStyle, opacity: 0.7 }} value={state.user?.email || ''} disabled />
+                                </div>
+                            </div>
+                            <div style={{ marginTop: 20, padding: 20, background: 'rgba(255,0,0,0.1)', borderRadius: 8, border: '1px solid rgba(255,0,0,0.2)' }}>
+                                <h4 style={{ color: '#ff4d4f', margin: '0 0 10px 0' }}>Danger Zone</h4>
+                                <button style={{ ...btnStyle, background: 'transparent', border: '1px solid #ff4d4f', color: '#ff4d4f' }} onClick={() => dispatch({ type: 'LOGOUT' })}>
+                                    Log Out of DeskTime
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
