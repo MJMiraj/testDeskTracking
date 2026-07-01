@@ -9,7 +9,7 @@ const dbUri = process.env.DB_URI;
 const sequelize = new Sequelize(dbUri, {
     dialect: 'mysql',
     logging: false, // Turn off console logging of every SQL query
-    dialectOptions: {
+    dialectOptions: dbUri.includes('localhost') ? {} : {
         ssl: {
             ca: fs.readFileSync(path.join(__dirname, 'ca.pem'))
         }

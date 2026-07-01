@@ -18,17 +18,78 @@
         </div>
 
         <div class="main-content">
-            <div class="animation-container">
-                <div class="ring"></div>
-                <div class="ring"></div>
-                <div class="ring"></div>
-                <div class="pulse-dot"></div>
+            <!-- SETUP SCREEN -->
+            <div id="setup-screen" style="width: 100%; display: flex; flex-direction: column; gap: 20px;">
+                <div style="text-align: center; margin-bottom: 5px;">
+                    <h2 style="font-size: 22px; font-weight: 600; color: #f4f4f5;">Installation Options</h2>
+                    <p style="font-size: 14px; color: #a1a1aa; margin-top: 5px;">Customize your DeskTime setup</p>
+                </div>
+                
+                <div class="settings-group">
+                    <label class="setting-item">
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="chk-desktop" checked>
+                            <span class="slider"></span>
+                        </div>
+                        <div class="setting-info">
+                            <h4>Desktop Shortcut</h4>
+                            <p>Quick access from your desktop</p>
+                        </div>
+                    </label>
+
+                    <label class="setting-item">
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="chk-startmenu" checked>
+                            <span class="slider"></span>
+                        </div>
+                        <div class="setting-info">
+                            <h4>Start Menu Shortcut</h4>
+                            <p>Add to Windows Start Menu</p>
+                        </div>
+                    </label>
+
+                    <label class="setting-item">
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="chk-launch" checked>
+                            <span class="slider"></span>
+                        </div>
+                        <div class="setting-info">
+                            <h4>Launch on Startup</h4>
+                            <p>Start tracking when Windows boots</p>
+                        </div>
+                    </label>
+                </div>
+
+                <div class="install-path-group">
+                    <span style="font-size: 12px; color: #a1a1aa; margin-bottom: 8px; display: block;">Destination Folder</span>
+                    <div class="path-input">
+                        <input type="text" id="install-path" value="%LocalAppData%\DeskTimePro" disabled>
+                        <button class="browse-btn" disabled>
+                            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <button class="primary-btn" id="btn-install">
+                    <span>Install Now</span>
+                    <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                </button>
             </div>
-            
-            <div class="status-container">
-                <h2 id="status-title">Initializing...</h2>
-                <p id="status-desc">Preparing the best tracking experience for you.</p>
-                <p id="error-msg"></p>
+
+            <!-- INSTALLING SCREEN (Hidden initially) -->
+            <div id="installing-screen" style="display: none; flex-direction: column; align-items: center; justify-content: center; width: 100%; gap: 30px; margin-top: 20px;">
+                <div class="animation-container">
+                    <div class="ring"></div>
+                    <div class="ring"></div>
+                    <div class="ring"></div>
+                    <div class="pulse-dot"></div>
+                </div>
+                
+                <div class="status-container">
+                    <h2 id="status-title">Initializing...</h2>
+                    <p id="status-desc">Preparing the best tracking experience for you.</p>
+                    <p id="error-msg"></p>
+                </div>
             </div>
         </div>
 
@@ -46,19 +107,46 @@
         const desc = document.getElementById('status-desc');
         const errorMsg = document.getElementById('error-msg');
         const progressFill = document.querySelector('.progress-fill');
+        const progressBarContainer = document.querySelector('.progress-bar-container');
+        
+        const setupScreen = document.getElementById('setup-screen');
+        const installingScreen = document.getElementById('installing-screen');
+        const btnInstall = document.getElementById('btn-install');
+
+        progressBarContainer.style.display = 'none'; // Hide progress bar initially
         
         let progress = 0;
+        let progressInterval;
 
-        // Auto increment progress visually to look cool
-        const progressInterval = setInterval(() => {
-            progress += Math.random() * 2;
-            if(progress > 95) progress = 95; // hold at 95% until done
-            progressFill.style.width = `${progress}%`;
-        }, 300);
+        btnInstall.addEventListener('click', () => {
+            // Transition UI
+            setupScreen.style.opacity = '0';
+            setTimeout(() => {
+                setupScreen.style.display = 'none';
+                installingScreen.style.display = 'flex';
+                progressBarContainer.style.display = 'block';
+                
+                // Trigger reflow to apply animation
+                setTimeout(() => installingScreen.style.opacity = '1', 10);
+            }, 300);
 
-        setTimeout(() => {
-            ipcRenderer.send('start-install');
-        }, 1500);
+            const config = {
+                desktopShortcut: document.getElementById('chk-desktop').checked,
+                startMenuShortcut: document.getElementById('chk-startmenu').checked,
+                launchOnStartup: document.getElementById('chk-launch').checked
+            };
+
+            // Auto increment progress visually to look cool
+            progressInterval = setInterval(() => {
+                progress += Math.random() * 2;
+                if(progress > 95) progress = 95; // hold at 95% until done
+                progressFill.style.width = `${progress}%`;
+            }, 300);
+
+            setTimeout(() => {
+                ipcRenderer.send('start-install', config);
+            }, 1000);
+        });
 
         ipcRenderer.on('install-progress', (event, msg) => {
             title.innerText = msg;

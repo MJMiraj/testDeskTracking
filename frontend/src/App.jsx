@@ -1,7 +1,7 @@
 import React, { useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { AuthProvider, AuthContext } from './context/AuthContext';
 import { ThemeProvider, ThemeContext } from './context/ThemeContext';
-import { LayoutDashboard, Settings as SettingsIcon, LogOut, Image as ImageIcon, Calendar, ListTodo, Timer, DollarSign, Brain, Target, Sparkles, AlertTriangle, Activity, CalendarDays, Waves, Award, Heart, Shield, TrendingUp, Flame, Coffee, UserPlus, Briefcase, FileText, Users, Link, Music, Database } from 'lucide-react';
+import { LayoutDashboard, Settings as SettingsIcon, LogOut, Image as ImageIcon, Calendar, ListTodo, Timer, DollarSign, Brain, Target, Sparkles, AlertTriangle, Activity, Clock, CalendarDays, Waves, Award, Heart, Shield, TrendingUp, Flame, Coffee, UserPlus, Briefcase, FileText, Users, Link, Music, Database, Menu, X } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, Legend, PieChart, Pie, Cell } from 'recharts';
 import axios from 'axios';
 import { io } from 'socket.io-client';
@@ -15,12 +15,12 @@ api.interceptors.request.use((config) => {
 
 const formatHrs = (secs) => (secs / 3600).toFixed(2);
 
-// ---------------- STYLES (MODERN UI) ----------------
-const inputStyle = { padding: 12, borderRadius: 8, border: '1px solid rgba(0,0,0,0.1)', width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.05)', color: 'var(--text-color)', backdropFilter: 'blur(10px)' };
-const btnStyle = { padding: 12, borderRadius: 8, border: 'none', background: 'linear-gradient(135deg, var(--primary-color), #8b5cf6)', color: 'white', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 15px rgba(0,0,0,0.2)' };
-const navBtn = (active) => ({ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 15px', border: 'none', background: active ? 'linear-gradient(90deg, var(--primary-color), transparent)' : 'transparent', color: active ? 'white' : 'var(--text-color)', cursor: 'pointer', borderRadius: 8, textAlign: 'left', fontWeight: 'bold', transition: '0.3s' });
-const cardStyle = { background: 'rgba(255, 255, 255, 0.05)', backdropFilter: 'blur(15px)', border: '1px solid rgba(255,255,255,0.1)', padding: 25, borderRadius: 15, boxShadow: '0 8px 32px rgba(0,0,0,0.05)', flex: 1, color: 'var(--text-color)' };
-const themeCard = (p, b, t) => ({ background: b, color: t, border: `3px solid ${p}`, padding: '30px 20px', borderRadius: 10, cursor: 'pointer', flex: 1, textAlign: 'center', fontWeight: 'bold', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' });
+// ---------------- STYLES (MODERN UI & GLASSMORPHISM) ----------------
+const inputStyle = { padding: '14px 18px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.15)', width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.08)', color: 'var(--text-color)', backdropFilter: 'blur(12px)', fontSize: 15, transition: 'all 0.3s ease', outline: 'none' };
+const btnStyle = { padding: '14px 22px', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg, var(--primary-color), #8b5cf6)', color: 'white', fontWeight: '700', fontSize: 15, cursor: 'pointer', boxShadow: '0 8px 24px rgba(139, 92, 246, 0.25)', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 };
+
+const cardStyle = { boxSizing: 'border-box', background: 'rgba(255, 255, 255, 0.03)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.08)', padding: 30, borderRadius: 24, boxShadow: '0 15px 35px rgba(0,0,0,0.1), 0 5px 15px rgba(0,0,0,0.05)', flex: 1, color: 'var(--text-color)', transition: 'transform 0.3s ease, box-shadow 0.3s ease' };
+const themeCard = (p, b, t) => ({ background: b, color: t, border: `2px solid ${p}`, padding: '30px 20px', borderRadius: 20, cursor: 'pointer', flex: 1, textAlign: 'center', fontWeight: 'bold', boxShadow: '0 10px 30px rgba(0,0,0,0.05)', transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)' });
 
 // ---------------- AUTH SCREEN ----------------
 const AuthScreen = () => {
@@ -248,6 +248,7 @@ const ProductivityBar = ({ timelineData, onSelectRange }) => {
 // ---------------- VIEWS ----------------
 const DashboardView = ({ summary, fetchSummary }) => {
     const { state } = useContext(AuthContext);
+    const { theme } = useContext(ThemeContext);
     const [manualTimeModal, setManualTimeModal] = useState(null);
     const [manualReason, setManualReason] = useState("");
     const [manualStatus, setManualStatus] = useState("productive");
@@ -548,37 +549,74 @@ const DashboardView = ({ summary, fetchSummary }) => {
 
             {/* Manual Offline Time Modal */}
             {manualTimeModal && (
-                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(5px)' }}>
-                    <div style={{ ...cardStyle, width: 400, background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.1)' }}>
-                        <h3 style={{ marginTop: 0 }}>Fill Offline Time</h3>
-                        <p style={{ color: 'var(--primary-color)', fontWeight: 'bold', marginBottom: 10 }}>
-                            {manualTimeModal.startHour.toString().padStart(2, '0')}:{manualTimeModal.startMinute.toString().padStart(2, '0')} to {manualTimeModal.endHour.toString().padStart(2, '0')}:{manualTimeModal.endMinute.toString().padStart(2, '0')}
-                        </p>
-                        <p style={{ color: 'gray', fontSize: 14, marginBottom: 20 }}>What were you doing during this offline block?</p>
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(10, 10, 12, 0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(16px)' }}>
+                    <div style={{ width: 440, maxWidth: '90vw', background: 'rgba(25, 25, 30, 0.95)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: 24, padding: 35, boxShadow: '0 30px 60px rgba(0,0,0,0.6)', color: '#fff' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+                            <div style={{ background: `linear-gradient(135deg, ${theme.primaryColor}33, transparent)`, padding: 10, borderRadius: 12, border: `1px solid ${theme.primaryColor}44` }}>
+                                <Activity size={24} color={theme.primaryColor} />
+                            </div>
+                            <div>
+                                <h3 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: '#fff' }}>Fill Offline Time</h3>
+                                <p style={{ margin: '4px 0 0 0', color: '#a1a1aa', fontSize: 13 }}>What were you doing during this block?</p>
+                            </div>
+                        </div>
+
+                        <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 12, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10, border: '1px solid rgba(255,255,255,0.05)', marginBottom: 20 }}>
+                            <Clock size={16} color={theme.primaryColor} />
+                            <span style={{ color: '#e4e4e7', fontWeight: 600, fontSize: 14, letterSpacing: '0.5px' }}>
+                                {manualTimeModal.startHour.toString().padStart(2, '0')}:{manualTimeModal.startMinute.toString().padStart(2, '0')} — {manualTimeModal.endHour.toString().padStart(2, '0')}:{manualTimeModal.endMinute.toString().padStart(2, '0')}
+                            </span>
+                        </div>
+
                         <input 
-                            style={{...inputStyle, marginBottom: 20}} 
-                            placeholder="e.g. Team Meeting, Lunch, Reading" 
+                            style={{ ...inputStyle, width: '100%', marginBottom: 20, background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', padding: '14px 16px', borderRadius: 12, fontSize: 14, color: '#fff' }} 
+                            placeholder="e.g. Team Meeting, Lunch break, Reading..." 
                             value={manualReason} 
                             onChange={e => setManualReason(e.target.value)} 
                             autoFocus
                         />
-                        <div style={{ display: 'flex', gap: 15, marginBottom: 25 }}>
-                            <label style={{ display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer' }}>
-                                <input type="radio" name="status" value="productive" checked={manualStatus === 'productive'} onChange={(e) => setManualStatus(e.target.value)} />
-                                <span style={{ color: '#52c41a' }}>Productive</span>
-                            </label>
-                            <label style={{ display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer' }}>
-                                <input type="radio" name="status" value="neutral" checked={manualStatus === 'neutral'} onChange={(e) => setManualStatus(e.target.value)} />
-                                <span style={{ color: 'gray' }}>Neutral</span>
-                            </label>
-                            <label style={{ display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer' }}>
-                                <input type="radio" name="status" value="unproductive" checked={manualStatus === 'unproductive'} onChange={(e) => setManualStatus(e.target.value)} />
-                                <span style={{ color: '#ff4d4f' }}>Unproductive</span>
-                            </label>
+
+                        <div style={{ display: 'flex', gap: 10, marginBottom: 30 }}>
+                            {['productive', 'neutral', 'unproductive'].map(status => {
+                                const colors = { productive: '#52c41a', neutral: '#a1a1aa', unproductive: '#ff4d4f' };
+                                const isActive = manualStatus === status;
+                                return (
+                                    <div 
+                                        key={status}
+                                        onClick={() => setManualStatus(status)}
+                                        style={{ 
+                                            flex: 1, textAlign: 'center', padding: '12px 0', borderRadius: 12, cursor: 'pointer',
+                                            border: `1px solid ${isActive ? colors[status] : 'rgba(255,255,255,0.08)'}`,
+                                            background: isActive ? `${colors[status]}1a` : 'rgba(0,0,0,0.2)',
+                                            color: isActive ? colors[status] : '#888',
+                                            transition: 'all 0.2s', textTransform: 'capitalize', fontWeight: isActive ? 600 : 500,
+                                            boxShadow: isActive ? `0 4px 12px ${colors[status]}22` : 'none'
+                                        }}
+                                        onMouseOver={e => !isActive && (e.currentTarget.style.background = 'rgba(255,255,255,0.03)')}
+                                        onMouseOut={e => !isActive && (e.currentTarget.style.background = 'rgba(0,0,0,0.2)')}
+                                    >
+                                        {status}
+                                    </div>
+                                );
+                            })}
                         </div>
-                        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-                            <button onClick={() => { setManualTimeModal(null); setManualReason(''); setManualStatus('productive'); }} style={{ ...btnStyle, background: 'transparent', border: '1px solid gray' }}>Cancel</button>
-                            <button onClick={handleManualSubmit} style={btnStyle} disabled={isSubmitting}>{isSubmitting ? 'Saving...' : 'Save Activity'}</button>
+
+                        <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+                            <button 
+                                onClick={() => { setManualTimeModal(null); setManualReason(''); setManualStatus('productive'); }} 
+                                style={{ ...btnStyle, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: 12, padding: '12px 24px' }}
+                                onMouseOver={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+                                onMouseOut={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                onClick={handleManualSubmit} 
+                                style={{ ...btnStyle, background: `linear-gradient(135deg, ${theme.primaryColor}, #8A2BE2)`, color: '#fff', border: 'none', borderRadius: 12, padding: '12px 24px', fontWeight: 600, boxShadow: `0 8px 20px ${theme.primaryColor}66` }} 
+                                disabled={isSubmitting}
+                            >
+                                {isSubmitting ? 'Saving...' : 'Save Activity'}
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -1277,42 +1315,195 @@ const CoWorkingView = () => {
 };
 
 // ---------------- MAIN LAYOUT ----------------
+const CustomToggle = ({ checked, onChange, label, description }) => {
+    const { theme } = useContext(ThemeContext);
+    return (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+            <div>
+                <h4 style={{ margin: 0, fontWeight: 600 }}>{label}</h4>
+                {description && <small style={{ color: 'gray', marginTop: 4, display: 'block' }}>{description}</small>}
+            </div>
+            <div 
+                onClick={() => onChange(!checked)}
+                style={{ 
+                    width: 50, height: 28, borderRadius: 15, background: checked ? theme.primaryColor : 'rgba(128,128,128,0.3)', 
+                    position: 'relative', cursor: 'pointer', transition: 'background 0.3s' 
+                }}
+            >
+                <div style={{ 
+                    width: 22, height: 22, borderRadius: '50%', background: '#fff', position: 'absolute', top: 3, 
+                    left: checked ? 25 : 3, transition: 'left 0.3s cubic-bezier(0.4, 0, 0.2, 1)', boxShadow: '0 2px 5px rgba(0,0,0,0.2)' 
+                }} />
+            </div>
+        </div>
+    );
+};
+
 const SettingsView = () => {
     const { state, dispatch } = useContext(AuthContext);
     const { theme, saveTheme } = useContext(ThemeContext);
 
     const [activeTab, setActiveTab] = useState('general');
 
-    // State for existing settings
     const [idleTimeout, setIdleTimeout] = useState(state.user?.settings?.idleTimeout || 60);
     const [hourlyRate, setHourlyRate] = useState(state.user?.settings?.hourlyRate || 0);
     const [dailyGoal, setDailyGoal] = useState(state.user?.settings?.dailyGoal || 8);
-    const [categoriesStr, setCategoriesStr] = useState(JSON.stringify(state.user?.settings?.appCategories || {}, null, 2));
-
-    // State for new settings
+    const [currency, setCurrency] = useState(state.user?.settings?.currency || '$');
+    
     const [autoStart, setAutoStart] = useState(state.user?.settings?.autoStart || false);
     const [launchOnBoot, setLaunchOnBoot] = useState(state.user?.settings?.launchOnBoot || false);
     const [blurScreenshots, setBlurScreenshots] = useState(state.user?.settings?.blurScreenshots || false);
+    const [allowScreenshotDeletion, setAllowScreenshotDeletion] = useState(state.user?.settings?.allowScreenshotDeletion || false);
+    const [privateTime, setPrivateTime] = useState(state.user?.settings?.privateTime || false);
+    const [offlineTime, setOfflineTime] = useState(state.user?.settings?.offlineTime !== false);
+
     const [screenshotInterval, setScreenshotInterval] = useState(state.user?.settings?.screenshotInterval || 10);
-    const [currency, setCurrency] = useState(state.user?.settings?.currency || '$');
+    const [timezone, setTimezone] = useState(state.user?.settings?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone);
+    const [shiftStart, setShiftStart] = useState(state.user?.settings?.shiftStart || '09:00');
+    const [shiftEnd, setShiftEnd] = useState(state.user?.settings?.shiftEnd || '17:00');
+    const [workingDays, setWorkingDays] = useState(state.user?.settings?.workingDays || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']);
+
+    const [appCategories, setAppCategories] = useState(() => {
+        const defaultCategories = {
+            // Development & Editors (Productive)
+            'github.com': 'productive',
+            'github.io': 'productive',
+            'gitlab.com': 'productive',
+            'bitbucket.org': 'productive',
+            'vscode': 'productive',
+            'code.exe': 'productive',
+            'idea64.exe': 'productive',
+            'webstorm64.exe': 'productive',
+            'pycharm64.exe': 'productive',
+            'studio64.exe': 'productive',
+            'devenv.exe': 'productive',
+            'sublime_text.exe': 'productive',
+            'notepad++.exe': 'productive',
+            'vim': 'productive',
+            'nvim': 'productive',
+            'xcode': 'productive',
+            
+            // Graphic Design & Video Editing (Productive)
+            'photoshop.exe': 'productive',
+            'illustrator.exe': 'productive',
+            'indesign.exe': 'productive',
+            'xd.exe': 'productive',
+            'premiere.exe': 'productive',
+            'afterfx.exe': 'productive',
+            'coreldrw.exe': 'productive',
+            'designer.exe': 'productive',
+            'photo.exe': 'productive',
+            'blender.exe': 'productive',
+            'cinema4d.exe': 'productive',
+            'sketch': 'productive',
+            'figma': 'productive',
+            'miro.com': 'productive',
+            'lucidchart.com': 'productive',
+            'invisionapp.com': 'productive',
+            'behance.net': 'productive',
+            'dribbble.com': 'productive',
+            'postman.com': 'productive',
+            'mongodb.com': 'productive',
+            'aws.amazon.com': 'productive',
+            'cloud.google.com': 'productive',
+            'azure.microsoft.com': 'productive',
+            'stackoverflow.com': 'productive',
+            'chatgpt.com': 'productive',
+            
+            // Communication & Project Management
+            'slack.com': 'productive',
+            'notion.so': 'productive',
+            'jira.com': 'productive',
+            'confluence.com': 'productive',
+            'trello.com': 'productive',
+            'asana.com': 'productive',
+            'linear.app': 'productive',
+            
+            // Meetings & Email (Neutral)
+            'mail.google.com': 'neutral',
+            'outlook.com': 'neutral',
+            'calendar.google.com': 'neutral',
+            'zoom.us': 'neutral',
+            'meet.google.com': 'neutral',
+            'teams.microsoft.com': 'neutral',
+            'webex.com': 'neutral',
+            'skype.com': 'neutral',
+            
+            // Cloud & Tools (Neutral)
+            'drive.google.com': 'neutral',
+            'dropbox.com': 'neutral',
+            'box.com': 'neutral',
+            'canva.com': 'neutral',
+            'whatsapp.com': 'neutral',
+            'spotify.com': 'neutral',
+            'apple.com': 'neutral',
+            'microsoft.com': 'neutral',
+
+            // Entertainment & Social (Unproductive)
+            'youtube.com': 'unproductive',
+            'twitch.tv': 'unproductive',
+            'vimeo.com': 'unproductive',
+            'netflix.com': 'unproductive',
+            'hulu.com': 'unproductive',
+            'disneyplus.com': 'unproductive',
+            'facebook.com': 'unproductive',
+            'twitter.com': 'unproductive',
+            'instagram.com': 'unproductive',
+            'reddit.com': 'unproductive',
+            'tiktok.com': 'unproductive',
+            'pinterest.com': 'unproductive',
+            'tumblr.com': 'unproductive',
+            '9gag.com': 'unproductive',
+            
+            // Shopping (Unproductive)
+            'amazon.com': 'unproductive',
+            'ebay.com': 'unproductive',
+            'aliexpress.com': 'unproductive'
+        };
+        const initial = state.user?.settings?.appCategories && Object.keys(state.user.settings.appCategories).length > 0 
+            ? state.user.settings.appCategories 
+            : defaultCategories;
+        return Object.entries(initial).map(([name, category], index) => ({ name, category, id: Date.now() + index + Math.random() }));
+    });
+    
+    const handleAddApp = () => {
+        setAppCategories([...appCategories, { name: '', category: 'neutral', id: Date.now() }]);
+    };
+    const handleUpdateApp = (id, field, value) => {
+        setAppCategories(appCategories.map(app => app.id === id ? { ...app, [field]: value } : app));
+    };
+    const handleRemoveApp = (id) => {
+        setAppCategories(appCategories.filter(app => app.id !== id));
+    };
+
+    const toggleWorkingDay = (day) => {
+        if (workingDays.includes(day)) setWorkingDays(workingDays.filter(d => d !== day));
+        else setWorkingDays([...workingDays, day]);
+    };
 
     const saveSettings = async () => {
         try {
-            const parsed = JSON.parse(categoriesStr);
+            const parsedCategories = appCategories.reduce((acc, app) => {
+                if (app.name.trim()) acc[app.name.trim().toLowerCase()] = app.category;
+                return acc;
+            }, {});
+
             const newSettings = { 
-                idleTimeout, hourlyRate, dailyGoal, appCategories: parsed,
-                autoStart, launchOnBoot, blurScreenshots, screenshotInterval, currency
+                idleTimeout, hourlyRate, dailyGoal, currency,
+                autoStart, launchOnBoot, blurScreenshots, allowScreenshotDeletion, privateTime, offlineTime,
+                screenshotInterval, timezone, shiftStart, shiftEnd, workingDays,
+                appCategories: parsedCategories
             };
+            
             const res = await api.put('/user/settings', { settings: newSettings });
             dispatch({ type: 'LOGIN_SUCCESS', payload: { ...state, user: { ...state.user, settings: res.data.data } } });
             
-            // Notify Desktop App if it's running
             if (window.electronAPI && window.electronAPI.updateSettings) {
                 window.electronAPI.updateSettings(newSettings);
             }
             alert("Settings saved successfully!");
         } catch (e) {
-            alert("Error saving settings. Ensure JSON is valid.");
+            alert("Error saving settings.");
         }
     };
 
@@ -1322,102 +1513,151 @@ const SettingsView = () => {
         dracula: { name: 'Dracula', mode: 'dracula', primaryColor: '#ff79c6', backgroundColor: '#282a36', textColor: '#f8f8f2', emoji: '🧛' },
         desktime: { name: 'DeskTime Classic', mode: 'desktime', primaryColor: '#52c41a', backgroundColor: '#ffffff', textColor: '#333333', emoji: '⏱️' },
         ocean: { name: 'Deep Ocean', mode: 'ocean', primaryColor: '#00d2ff', backgroundColor: '#0f2027', textColor: '#eeeeee', emoji: '🌊' },
-        forest: { name: 'Enchanted Forest', mode: 'forest', primaryColor: '#2eb62c', backgroundColor: '#142114', textColor: '#e6f0e6', emoji: '🌲' }
+        forest: { name: 'Enchanted Forest', mode: 'forest', primaryColor: '#2eb62c', backgroundColor: '#142114', textColor: '#e6f0e6', emoji: '🌲' },
+        cyberpunk: { name: 'Cyberpunk', mode: 'cyberpunk', primaryColor: '#00ff9f', backgroundColor: '#090a0f', textColor: '#e0e0e0', emoji: '🌆' },
+        sunset: { name: 'Sunset Glow', mode: 'sunset', primaryColor: '#ff6b6b', backgroundColor: '#2a1a1f', textColor: '#ffe5e5', emoji: '🌇' }
     };
 
     const tabs = [
         { id: 'general', name: 'General', icon: <SettingsIcon size={18} /> },
+        { id: 'schedule', name: 'Schedule & Time', icon: <CalendarDays size={18} /> },
         { id: 'productivity', name: 'Productivity', icon: <Target size={18} /> },
-        { id: 'privacy', name: 'Privacy & Screenshots', icon: <Shield size={18} /> },
+        { id: 'privacy', name: 'Privacy', icon: <Shield size={18} /> },
+        { id: 'integrations', name: 'Integrations', icon: <Link size={18} /> },
         { id: 'billing', name: 'Billing', icon: <DollarSign size={18} /> },
         { id: 'appearance', name: 'Appearance', icon: <Sparkles size={18} /> },
         { id: 'account', name: 'Account', icon: <Users size={18} /> },
     ];
 
     return (
-        <div className="fade-in" style={{ paddingBottom: 50, display: 'flex', gap: 30, alignItems: 'flex-start' }}>
-            {/* Sidebar Navigation */}
-            <div style={{ width: 250, display: 'flex', flexDirection: 'column', gap: 5, background: 'rgba(255,255,255,0.02)', padding: 20, borderRadius: 12, border: '1px solid rgba(255,255,255,0.05)' }}>
+        <div className="fade-in" style={{ paddingBottom: 50, display: 'flex', gap: 30, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+            <div style={{ flex: '0 0 250px', display: 'flex', flexDirection: 'column', gap: 5, background: 'rgba(255,255,255,0.02)', padding: 20, borderRadius: 12, border: '1px solid rgba(255,255,255,0.05)' }}>
                 <h2 style={{ fontSize: 24, fontWeight: 800, marginBottom: 20 }}>Settings</h2>
                 {tabs.map(t => (
-                    <button 
-                        key={t.id} 
-                        onClick={() => setActiveTab(t.id)}
-                        style={{
-                            ...navBtn(activeTab === t.id),
-                            justifyContent: 'flex-start', padding: '12px 15px', borderRadius: 8,
-                            backgroundColor: activeTab === t.id ? `${theme.primaryColor}20` : 'transparent',
-                            color: activeTab === t.id ? theme.primaryColor : 'inherit',
-                            fontWeight: activeTab === t.id ? 'bold' : 'normal',
-                            transition: 'all 0.2s'
-                        }}
-                    >
-                        {t.icon} <span style={{marginLeft: 10}}>{t.name}</span>
+                    <button key={t.id} className={`settings-tab ${activeTab === t.id ? 'active' : ''}`} onClick={() => setActiveTab(t.id)} style={{ marginBottom: 2 }}>
+                        {t.icon} <span>{t.name}</span>
                     </button>
                 ))}
             </div>
 
-            {/* Main Content Area */}
-            <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 30 }}>
-                    <h2 style={{ fontSize: 28, margin: 0, fontWeight: 700 }}>
-                        {tabs.find(t => t.id === activeTab)?.name}
-                    </h2>
+            <div style={{ flex: 1, minWidth: 300 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 30, flexWrap: 'wrap', gap: 15 }}>
+                    <h2 style={{ fontSize: 28, margin: 0, fontWeight: 700 }}>{tabs.find(t => t.id === activeTab)?.name}</h2>
                     <button style={{ ...btnStyle, padding: '10px 20px', borderRadius: 25 }} onClick={saveSettings}>
-                        <Sparkles size={16} style={{ marginRight: 8, verticalAlign: 'middle' }} />
-                        Save All Changes
+                        <Sparkles size={16} style={{ marginRight: 8, verticalAlign: 'middle' }} /> Save Changes
                     </button>
                 </div>
 
                 {activeTab === 'general' && (
-                    <div style={{ ...cardStyle, display: 'flex', flexDirection: 'column', gap: 20 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                            <div>
-                                <h4 style={{ margin: 0 }}>Launch on System Startup</h4>
-                                <small style={{ color: 'gray' }}>Open DeskTime when Windows starts</small>
-                            </div>
-                            <input type="checkbox" checked={launchOnBoot} onChange={e => setLaunchOnBoot(e.target.checked)} style={{ transform: 'scale(1.5)', accentColor: theme.primaryColor }} />
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                            <div>
-                                <h4 style={{ margin: 0 }}>Auto-start Tracking</h4>
-                                <small style={{ color: 'gray' }}>Automatically begin tracking when the app opens</small>
-                            </div>
-                            <input type="checkbox" checked={autoStart} onChange={e => setAutoStart(e.target.checked)} style={{ transform: 'scale(1.5)', accentColor: theme.primaryColor }} />
-                        </div>
+                    <div style={{ ...cardStyle, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        <CustomToggle label="Launch on System Startup" description="Open automatically when Windows starts" checked={launchOnBoot} onChange={setLaunchOnBoot} />
+                        <CustomToggle label="Auto-start Tracking" description="Begin tracking time immediately when app opens" checked={autoStart} onChange={setAutoStart} />
+                        
                         <div style={{ padding: '15px 0' }}>
-                            <h4 style={{ margin: '0 0 10px 0' }}>Idle Timeout (Seconds)</h4>
-                            <small style={{ color: 'gray', display: 'block', marginBottom: 10 }}>Time before you are marked as idle/away.</small>
-                            <input type="number" style={inputStyle} value={idleTimeout} onChange={e => setIdleTimeout(Number(e.target.value))} />
+                            <h4 style={{ margin: '0 0 5px 0', fontWeight: 600 }}>Idle Timeout</h4>
+                            <small style={{ color: 'gray', display: 'block', marginBottom: 15 }}>Time before you are marked as idle (seconds).</small>
+                            <input type="number" style={{ ...inputStyle, width: 200 }} value={idleTimeout} onChange={e => setIdleTimeout(Number(e.target.value))} />
+                        </div>
+                        
+                        <div style={{ padding: '15px 0', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                            <h4 style={{ margin: '0 0 5px 0', fontWeight: 600 }}>Timezone</h4>
+                            <small style={{ color: 'gray', display: 'block', marginBottom: 15 }}>Set your local timezone for reporting.</small>
+                            <input type="text" style={{ ...inputStyle, width: 300 }} value={timezone} onChange={e => setTimezone(e.target.value)} placeholder="e.g. America/New_York" />
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'schedule' && (
+                    <div style={{ ...cardStyle, display: 'flex', flexDirection: 'column', gap: 20 }}>
+                        <div>
+                            <h4 style={{ margin: '0 0 10px 0', fontWeight: 600 }}>Working Days</h4>
+                            <p style={{ color: 'gray', fontSize: 13, marginBottom: 15 }}>Select the days you normally work. Reports will highlight these days.</p>
+                            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                                {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => (
+                                    <button 
+                                        key={day} onClick={() => toggleWorkingDay(day)}
+                                        style={{ 
+                                            padding: '8px 16px', borderRadius: 20, border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer', transition: 'all 0.2s',
+                                            background: workingDays.includes(day) ? theme.primaryColor : 'transparent',
+                                            color: workingDays.includes(day) ? '#fff' : 'inherit',
+                                            fontWeight: workingDays.includes(day) ? 'bold' : 'normal'
+                                        }}
+                                    >
+                                        {day.substring(0,3)}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        
+                        <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: 20 }}>
+                            <h4 style={{ margin: '0 0 10px 0', fontWeight: 600 }}>Shift Hours</h4>
+                            <p style={{ color: 'gray', fontSize: 13, marginBottom: 15 }}>Define your standard working hours for arrival and departure tracking.</p>
+                            <div style={{ display: 'flex', gap: 20 }}>
+                                <div>
+                                    <small style={{display:'block', marginBottom:5}}>Start Time</small>
+                                    <input type="time" style={{ ...inputStyle, width: 150 }} value={shiftStart} onChange={e => setShiftStart(e.target.value)} />
+                                </div>
+                                <div>
+                                    <small style={{display:'block', marginBottom:5}}>End Time</small>
+                                    <input type="time" style={{ ...inputStyle, width: 150 }} value={shiftEnd} onChange={e => setShiftEnd(e.target.value)} />
+                                </div>
+                            </div>
                         </div>
                     </div>
                 )}
 
                 {activeTab === 'productivity' && (
-                    <div style={{ ...cardStyle, display: 'flex', flexDirection: 'column', gap: 20 }}>
-                        <div>
-                            <h4 style={{ margin: '0 0 10px 0' }}>Daily Goal (Hours)</h4>
-                            <input type="number" style={{ ...inputStyle, width: 200 }} value={dailyGoal} onChange={e => setDailyGoal(Number(e.target.value))} />
+                    <div style={{ ...cardStyle, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        <div style={{ paddingBottom: 15, borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                            <h4 style={{ margin: '0 0 5px 0', fontWeight: 600 }}>Daily Goal (Hours)</h4>
+                            <small style={{ color: 'gray', display: 'block', marginBottom: 15 }}>Minimum productive hours to hit your daily target.</small>
+                            <input type="number" style={{ ...inputStyle, width: 150 }} value={dailyGoal} onChange={e => setDailyGoal(Number(e.target.value))} />
                         </div>
-                        <div style={{ marginTop: 20 }}>
-                            <h4 style={{ margin: '0 0 10px 0' }}>App Categorization (JSON)</h4>
-                            <p style={{ color: 'gray', fontSize: 13, marginBottom: 15 }}>Map app names to categories: "productive", "neutral", "unproductive".</p>
-                            <textarea style={{ ...inputStyle, height: 200, fontFamily: 'monospace', backgroundColor: 'rgba(0,0,0,0.2)' }} value={categoriesStr} onChange={e => setCategoriesStr(e.target.value)}></textarea>
+                        
+                        <CustomToggle label="Offline Time Tracking" description="Allow logging time spent away from the computer" checked={offlineTime} onChange={setOfflineTime} />
+                        
+                        <div style={{ paddingTop: 15 }}>
+                            <h4 style={{ margin: '0 0 5px 0', fontWeight: 600 }}>App Categorization</h4>
+                            <p style={{ color: 'gray', fontSize: 13, marginBottom: 15 }}>Dynamically map application/website names to productivity categories.</p>
+                            
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 15, background: 'rgba(0, 0, 0, 0.2)', padding: 15, borderRadius: 16, border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                                {appCategories.map(app => (
+                                    <div key={app.id} style={{ display: 'flex', gap: 12, alignItems: 'center', background: 'rgba(255,255,255,0.03)', padding: 12, borderRadius: 12, border: '1px solid rgba(255, 255, 255, 0.05)', transition: 'background 0.2s' }}>
+                                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 5 }}>
+                                            <span style={{ fontSize: 12, color: '#a1a1aa', fontWeight: 500 }}>App / Website</span>
+                                            <input type="text" placeholder="e.g. youtube.com" style={{ ...inputStyle, width: '100%', padding: '8px 12px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', color: '#e4e4e7', borderRadius: 8, fontSize: 13, fontFamily: 'monospace' }} value={app.name} onChange={e => handleUpdateApp(app.id, 'name', e.target.value)} />
+                                        </div>
+                                        <div style={{ width: 140, display: 'flex', flexDirection: 'column', gap: 5 }}>
+                                            <span style={{ fontSize: 12, color: '#a1a1aa', fontWeight: 500 }}>Category</span>
+                                            <select style={{ ...inputStyle, width: '100%', padding: '8px 12px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', color: '#e4e4e7', borderRadius: 8, fontSize: 13, cursor: 'pointer' }} value={app.category} onChange={e => handleUpdateApp(app.id, 'category', e.target.value)}>
+                                                <option value="productive" style={{color:'black'}}>🟢 Productive</option>
+                                                <option value="neutral" style={{color:'black'}}>⚪ Neutral</option>
+                                                <option value="unproductive" style={{color:'black'}}>🔴 Unproductive</option>
+                                            </select>
+                                        </div>
+                                        <button onClick={() => handleRemoveApp(app.id)} style={{ alignSelf: 'flex-end', height: 37, width: 37, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,77,79,0.1)', color: '#ff4d4f', border: '1px solid rgba(255,77,79,0.2)', borderRadius: 8, cursor: 'pointer', transition: 'all 0.2s' }} onMouseOver={e => e.currentTarget.style.background = 'rgba(255,77,79,0.2)'} onMouseOut={e => e.currentTarget.style.background = 'rgba(255,77,79,0.1)'}>
+                                            <X size={16} />
+                                        </button>
+                                    </div>
+                                ))}
+                                {appCategories.length === 0 && <p style={{ color: 'gray', fontStyle: 'italic', textAlign: 'center', padding: '10px 0' }}>No custom categories configured.</p>}
+                                <button onClick={handleAddApp} style={{ background: 'transparent', border: `1px dashed rgba(255,255,255,0.2)`, color: '#a1a1aa', padding: '12px 20px', borderRadius: 12, cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s', marginTop: 5 }} onMouseOver={e => { e.currentTarget.style.color = theme.primaryColor; e.currentTarget.style.borderColor = theme.primaryColor; }} onMouseOut={e => { e.currentTarget.style.color = '#a1a1aa'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)'; }}>
+                                    + Add New Application Rule
+                                </button>
+                            </div>
                         </div>
                     </div>
                 )}
 
                 {activeTab === 'privacy' && (
-                    <div style={{ ...cardStyle, display: 'flex', flexDirection: 'column', gap: 20 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                            <div>
-                                <h4 style={{ margin: 0 }}>Blur Screenshots</h4>
-                                <small style={{ color: 'gray' }}>Obscure text and sensitive data in screenshots for privacy</small>
-                            </div>
-                            <input type="checkbox" checked={blurScreenshots} onChange={e => setBlurScreenshots(e.target.checked)} style={{ transform: 'scale(1.5)', accentColor: theme.primaryColor }} />
-                        </div>
-                        <div style={{ padding: '15px 0' }}>
-                            <h4 style={{ margin: '0 0 10px 0' }}>Screenshot Interval (Minutes)</h4>
+                    <div style={{ ...cardStyle, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        <CustomToggle label="Private Time Option" description="Allow users to toggle a 'Private Time' switch where nothing is tracked" checked={privateTime} onChange={setPrivateTime} />
+                        <CustomToggle label="Blur Screenshots" description="Obscure text and sensitive data in screenshots for privacy" checked={blurScreenshots} onChange={setBlurScreenshots} />
+                        <CustomToggle label="Allow Screenshot Deletion" description="Allow users to manually delete their tracked screenshots" checked={allowScreenshotDeletion} onChange={setAllowScreenshotDeletion} />
+                        
+                        <div style={{ padding: '15px 0', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                            <h4 style={{ margin: '0 0 5px 0', fontWeight: 600 }}>Screenshot Interval</h4>
+                            <small style={{ color: 'gray', display: 'block', marginBottom: 15 }}>How often a desktop screenshot is captured.</small>
                             <select style={{ ...inputStyle, width: 200 }} value={screenshotInterval} onChange={e => setScreenshotInterval(Number(e.target.value))}>
                                 <option value={3} style={{color:'black'}}>Every 3 minutes</option>
                                 <option value={5} style={{color:'black'}}>Every 5 minutes</option>
@@ -1428,17 +1668,40 @@ const SettingsView = () => {
                         </div>
                     </div>
                 )}
+                
+                {activeTab === 'integrations' && (
+                    <div style={{ ...cardStyle }}>
+                        <h4 style={{ margin: '0 0 15px 0', fontWeight: 600 }}>Connected Apps</h4>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 15 }}>
+                            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: 20, textAlign: 'center' }}>
+                                <CalendarDays size={32} color="#0088FE" style={{ marginBottom: 10 }} />
+                                <h4>Google Calendar</h4>
+                                <button style={{ background: 'transparent', border: '1px solid #0088FE', color: '#0088FE', padding: '6px 16px', borderRadius: 20, marginTop: 10, cursor: 'pointer' }}>Connect</button>
+                            </div>
+                            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: 20, textAlign: 'center' }}>
+                                <ListTodo size={32} color="#52c41a" style={{ marginBottom: 10 }} />
+                                <h4>Trello Integration</h4>
+                                <button style={{ background: 'transparent', border: '1px solid #52c41a', color: '#52c41a', padding: '6px 16px', borderRadius: 20, marginTop: 10, cursor: 'pointer' }}>Connect</button>
+                            </div>
+                            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: 20, textAlign: 'center' }}>
+                                <Activity size={32} color="#ff4d4f" style={{ marginBottom: 10 }} />
+                                <h4>Jira Software</h4>
+                                <button style={{ background: 'transparent', border: '1px solid #ff4d4f', color: '#ff4d4f', padding: '6px 16px', borderRadius: 20, marginTop: 10, cursor: 'pointer' }}>Connect</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {activeTab === 'billing' && (
                     <div style={{ ...cardStyle, display: 'flex', flexDirection: 'column', gap: 20 }}>
-                        <div style={{ display: 'flex', gap: 20 }}>
-                            <div style={{ flex: 1 }}>
-                                <h4 style={{ margin: '0 0 10px 0' }}>Currency Symbol</h4>
-                                <input type="text" style={inputStyle} value={currency} onChange={e => setCurrency(e.target.value)} />
+                        <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
+                            <div style={{ flex: 1, minWidth: 150 }}>
+                                <h4 style={{ margin: '0 0 10px 0', fontWeight: 600 }}>Currency Symbol</h4>
+                                <input type="text" style={inputStyle} value={currency} onChange={e => setCurrency(e.target.value)} placeholder="$" />
                             </div>
-                            <div style={{ flex: 1 }}>
-                                <h4 style={{ margin: '0 0 10px 0' }}>Hourly Rate</h4>
-                                <input type="number" style={inputStyle} value={hourlyRate} onChange={e => setHourlyRate(Number(e.target.value))} />
+                            <div style={{ flex: 1, minWidth: 150 }}>
+                                <h4 style={{ margin: '0 0 10px 0', fontWeight: 600 }}>Hourly Rate</h4>
+                                <input type="number" style={inputStyle} value={hourlyRate} onChange={e => setHourlyRate(Number(e.target.value))} placeholder="0.00" />
                             </div>
                         </div>
                     </div>
@@ -1448,22 +1711,8 @@ const SettingsView = () => {
                     <div style={{ ...cardStyle }}>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 20 }}>
                             {Object.values(themes).map((t) => (
-                                <div 
-                                    key={t.mode}
-                                    onClick={() => saveTheme(t)} 
-                                    style={{ 
-                                        ...themeCard(theme.mode === t.mode ? t.primaryColor : 'transparent', t.backgroundColor, t.textColor),
-                                        position: 'relative',
-                                        transform: theme.mode === t.mode ? 'translateY(-5px)' : 'none',
-                                        transition: 'all 0.3s ease',
-                                        boxShadow: theme.mode === t.mode ? `0 10px 20px ${t.primaryColor}40` : '0 4px 10px rgba(0,0,0,0.1)'
-                                    }}
-                                >
-                                    {theme.mode === t.mode && (
-                                        <div style={{ position: 'absolute', top: 10, right: 10, color: t.primaryColor }}>
-                                            <Target size={20} />
-                                        </div>
-                                    )}
+                                <div key={t.mode} onClick={() => saveTheme(t)} style={{ ...themeCard(theme.mode === t.mode ? t.primaryColor : 'transparent', t.backgroundColor, t.textColor), position: 'relative', transform: theme.mode === t.mode ? 'translateY(-5px)' : 'none', transition: 'all 0.3s ease', boxShadow: theme.mode === t.mode ? `0 10px 20px ${t.primaryColor}40` : '0 4px 10px rgba(0,0,0,0.1)' }}>
+                                    {theme.mode === t.mode && <div style={{ position: 'absolute', top: 10, right: 10, color: t.primaryColor }}><Target size={20} /></div>}
                                     <div style={{ fontSize: 40, marginBottom: 15 }}>{t.emoji}</div>
                                     <div style={{ fontSize: 16 }}>{t.name}</div>
                                 </div>
@@ -1475,21 +1724,34 @@ const SettingsView = () => {
                 {activeTab === 'account' && (
                     <div style={{ ...cardStyle }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
-                            <div style={{ display: 'flex', gap: 20 }}>
-                                <div style={{ flex: 1 }}>
-                                    <h4 style={{ margin: '0 0 10px 0' }}>Username</h4>
+                            <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
+                                <div style={{ flex: 1, minWidth: 200 }}>
+                                    <h4 style={{ margin: '0 0 10px 0', fontWeight: 600 }}>Username</h4>
                                     <input type="text" style={{ ...inputStyle, opacity: 0.7 }} value={state.user?.username || ''} disabled />
                                 </div>
-                                <div style={{ flex: 1 }}>
-                                    <h4 style={{ margin: '0 0 10px 0' }}>Email</h4>
+                                <div style={{ flex: 1, minWidth: 200 }}>
+                                    <h4 style={{ margin: '0 0 10px 0', fontWeight: 600 }}>Email Address</h4>
                                     <input type="email" style={{ ...inputStyle, opacity: 0.7 }} value={state.user?.email || ''} disabled />
                                 </div>
                             </div>
-                            <div style={{ marginTop: 20, padding: 20, background: 'rgba(255,0,0,0.1)', borderRadius: 8, border: '1px solid rgba(255,0,0,0.2)' }}>
-                                <h4 style={{ color: '#ff4d4f', margin: '0 0 10px 0' }}>Danger Zone</h4>
-                                <button style={{ ...btnStyle, background: 'transparent', border: '1px solid #ff4d4f', color: '#ff4d4f' }} onClick={() => dispatch({ type: 'LOGOUT' })}>
-                                    Log Out of DeskTime
+                            
+                            <div style={{ marginTop: 20 }}>
+                                <button style={{ ...btnStyle, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-color)' }}>
+                                    Change Password
                                 </button>
+                            </div>
+
+                            <div style={{ marginTop: 30, padding: 25, background: 'rgba(255,77,79,0.05)', borderRadius: 12, border: '1px solid rgba(255,77,79,0.2)' }}>
+                                <h4 style={{ color: '#ff4d4f', margin: '0 0 10px 0', fontSize: 18 }}>Danger Zone</h4>
+                                <p style={{ color: 'gray', fontSize: 14, marginBottom: 20 }}>Once you delete your account, there is no going back. Please be certain.</p>
+                                <div style={{ display: 'flex', gap: 15, flexWrap: 'wrap' }}>
+                                    <button style={{ ...btnStyle, background: 'transparent', border: '1px solid #ff4d4f', color: '#ff4d4f' }} onClick={() => dispatch({ type: 'LOGOUT' })}>
+                                        Log Out of DeskTime
+                                    </button>
+                                    <button style={{ ...btnStyle, background: '#ff4d4f', border: '1px solid #ff4d4f', color: '#fff' }}>
+                                        Delete Account
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1753,6 +2015,7 @@ const MainApp = () => {
     const [socket, setSocket] = useState(null);
 
     const [selectedDate, setSelectedDate] = useState('');
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     const fetchData = useCallback(async () => {
         try {
@@ -1775,14 +2038,10 @@ const MainApp = () => {
     // INIT AUTOMATION & WEBSOCKET
     useEffect(() => {
         if (state.isAuthenticated && state.token) {
-            // Start Auto Session
             api.get('/time/auto').then(res => {
-                if (window.electronAPI) {
-                    window.electronAPI.startTracking({ token: state.token, timeEntryId: res.data.data.id });
-                }
+                if (window.electronAPI) window.electronAPI.startTracking({ token: state.token, timeEntryId: res.data.data.id });
             }).catch(console.error);
 
-            // Fetch User Data if missing (e.g. on page refresh)
             if (!state.user) {
                 api.get('/user/me').then(res => {
                     dispatch({ type: 'UPDATE_USER', payload: res.data.data });
@@ -1791,16 +2050,14 @@ const MainApp = () => {
                 });
             }
 
-            // Initial Fetch
             fetchData();
 
-            // Setup WebSocket for REAL-TIME AUTO RELOAD
             const newSocket = io('https://testdesktracking.onrender.com');
             setSocket(newSocket);
 
             newSocket.on('dashboard_update', (data) => {
                 console.log("Live Update Received!", data);
-                fetchData(); // Instantly refresh data without page reload
+                fetchData();
             });
 
             return () => {
@@ -1815,79 +2072,207 @@ const MainApp = () => {
     return (
         <div className="main-layout">
             <style>{`
-                .fade-in { animation: fadeIn 0.5s ease-in-out; }
-                @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-                .hover-lift:hover { transform: translateY(-5px); box-shadow: 0 10px 40px rgba(0,0,0,0.1); }
-                .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
-                .main-layout { display: flex; height: 100vh; background: var(--bg-color); color: var(--text-color); font-family: 'Inter', sans-serif; }
-                .sidebar { width: 260px; background: rgba(0,0,0,0.03); backdrop-filter: blur(10px); padding: 25px; display: flex; flex-direction: column; border-right: 1px solid rgba(255,255,255,0.05); }
-                .content-area { flex: 1; padding: 50px; overflow-y: auto; }
-                @media (max-width: 768px) {
+                * { box-sizing: border-box; }
+                .fade-in { animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
+                @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+                .hover-lift:hover { transform: translateY(-5px); box-shadow: 0 15px 35px rgba(0,0,0,0.15); }
+                
+                .nav-item {
+                    display: flex; align-items: center; gap: 14px; padding: 12px 16px;
+                    border: none; background: transparent; color: var(--text-color);
+                    cursor: pointer; border-radius: 10px; text-align: left;
+                    font-weight: 500; font-size: 14px; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+                    border-left: 3px solid transparent; opacity: 0.7;
+                }
+                .nav-item:hover {
+                    opacity: 1; background: rgba(128, 128, 128, 0.1);
+                }
+                .nav-item.active {
+                    opacity: 1; color: var(--primary-color);
+                    background: linear-gradient(90deg, color-mix(in srgb, var(--primary-color) 15%, transparent), transparent);
+                    border-left: 3px solid var(--primary-color); font-weight: 600;
+                }
+                
+                .settings-tab {
+                    display: flex; align-items: center; gap: 12px; padding: 10px 14px;
+                    border: none; background: transparent; color: var(--text-color);
+                    cursor: pointer; border-radius: 8px; text-align: left;
+                    font-weight: 500; font-size: 14px; transition: all 0.2s ease;
+                    opacity: 0.7;
+                }
+                .settings-tab:hover {
+                    opacity: 1; background: rgba(128, 128, 128, 0.08);
+                }
+                .settings-tab.active {
+                    opacity: 1; color: var(--primary-color);
+                    background: color-mix(in srgb, var(--primary-color) 12%, transparent);
+                    font-weight: 600;
+                }
+                
+                nav.custom-scroll::-webkit-scrollbar { width: 4px; }
+                nav.custom-scroll::-webkit-scrollbar-thumb { background: rgba(128, 128, 128, 0.2); border-radius: 10px; }
+                nav.custom-scroll::-webkit-scrollbar-thumb:hover { background: rgba(128, 128, 128, 0.4); }
+                
+                .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 25px; margin-bottom: 40px; }
+                .main-layout { display: flex; height: 100vh; background: var(--bg-color); color: var(--text-color); font-family: 'Inter', sans-serif; overflow: hidden; }
+                
+                .sidebar { 
+                    width: 280px; 
+                    background: rgba(0,0,0,0.03); 
+                    backdrop-filter: blur(25px); 
+                    -webkit-backdrop-filter: blur(25px);
+                    padding: 30px 25px; 
+                    display: flex; 
+                    flex-direction: column; 
+                    border-right: 1px solid rgba(255,255,255,0.08); 
+                    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+                    z-index: 1000;
+                    box-shadow: 5px 0 30px rgba(0,0,0,0.02);
+                }
+                
+                .content-area { flex: 1; padding: 50px 60px; overflow-y: auto; scroll-behavior: smooth; }
+                
+                /* Custom Scrollbar for Content */
+                .content-area::-webkit-scrollbar { width: 8px; }
+                .content-area::-webkit-scrollbar-track { background: transparent; }
+                .content-area::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+                .content-area::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
+                .top-bar-mobile { display: none; }
+                .sidebar-overlay { display: none; }
+                .mobile-only-btn { display: none; }
+
+                @media (max-width: 900px) {
                     .main-layout { flex-direction: column; }
-                    .sidebar { width: 100%; height: auto; border-right: none; border-bottom: 1px solid rgba(255,255,255,0.05); padding: 15px; }
-                    .content-area { padding: 20px; }
+                    .content-area { padding: 25px; height: calc(100vh - 70px); }
+                    
+                    .top-bar-mobile { 
+                        display: flex; 
+                        align-items: center; 
+                        justify-content: space-between; 
+                        padding: 15px 25px; 
+                        height: 70px;
+                        background: rgba(255,255,255,0.02); 
+                        backdrop-filter: blur(15px); 
+                        border-bottom: 1px solid rgba(255,255,255,0.05); 
+                        z-index: 998; 
+                        box-sizing: border-box;
+                    }
+                    
+                    .mobile-only-btn { display: block; }
+
+                    .sidebar { 
+                        position: fixed; 
+                        top: 0; left: 0; bottom: 0; 
+                    }
+                    .sidebar.mobile-closed { transform: translateX(-100%); }
+                    .sidebar.mobile-open { transform: translateX(0); }
+                    
+                    .sidebar-overlay {
+                        display: block;
+                        position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+                        background: rgba(0,0,0,0.4); 
+                        backdrop-filter: blur(4px);
+                        z-index: 999;
+                        opacity: 0; pointer-events: none;
+                        transition: opacity 0.3s ease;
+                    }
+                    .sidebar-overlay.active { opacity: 1; pointer-events: auto; }
+                }
+                
+                @media (min-width: 901px) {
+                    .sidebar { transform: translateX(0) !important; position: relative; }
                 }
             `}</style>
 
-            {/* Sidebar */}
-            <div className="sidebar">
-                <h1 style={{ color: 'transparent', backgroundClip: 'text', backgroundImage: 'linear-gradient(90deg, var(--primary-color), #8b5cf6)', marginBottom: 30, display: 'flex', alignItems: 'center', gap: 10, fontSize: 24, fontWeight: 900 }}>DeskTime Pro</h1>
+            {/* Mobile Top Bar */}
+            <div className="top-bar-mobile">
+                <h1 style={{ margin: 0, fontSize: 20, fontWeight: 900, background: 'linear-gradient(90deg, var(--primary-color), #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>DeskTime Pro</h1>
+                <button 
+                    onClick={() => setIsSidebarOpen(true)}
+                    style={{ background: 'transparent', border: 'none', color: 'var(--text-color)', cursor: 'pointer', padding: 5 }}
+                >
+                    <Menu size={28} />
+                </button>
+            </div>
 
-                <nav style={{ display: 'flex', flexDirection: 'column', gap: 12, flex: 1 }}>
-                    <button style={navBtn(view === 'dashboard')} onClick={() => setView('dashboard')}><LayoutDashboard size={20} /> Dashboard</button>
-                    <button style={navBtn(view === 'activities')} onClick={() => setView('activities')}><Activity size={20} /> Apps & Activities</button>
-                    <button style={navBtn(view === 'screenshots')} onClick={() => setView('screenshots')}><ImageIcon size={20} /> Screenshots</button>
-                    <button style={navBtn(view === 'flow')} onClick={() => setView('flow')}><Waves size={20} /> Flow State Lab</button>
-                    <button style={navBtn(view === 'coworking')} onClick={() => setView('coworking')}><Users size={20} /> Co-Working</button>
-                    <button style={navBtn(view === 'wellness')} onClick={() => setView('wellness')}><Heart size={20} /> Wellness</button>
-                    <button style={navBtn(view === 'trophy')} onClick={() => setView('trophy')}><Award size={20} /> Trophies</button>
-                    <button style={navBtn(view === 'timesheets')} onClick={() => setView('timesheets')}><CalendarDays size={20} /> Timesheets</button>
-                    <button style={navBtn(view === 'tasks')} onClick={() => setView('tasks')}><ListTodo size={20} /> Tasks & Projects</button>
-                    <button style={navBtn(view === 'billing')} onClick={() => setView('billing')}><DollarSign size={20} /> Earnings</button>
-                    <button style={navBtn(view === 'leave')} onClick={() => setView('leave')}><Calendar size={20} /> Leave Hub</button>
-                    <button style={navBtn(view === 'settings')} onClick={() => setView('settings')}><SettingsIcon size={20} /> Settings</button>
+            {/* Mobile Overlay */}
+            <div 
+                className={`sidebar-overlay ${isSidebarOpen ? 'active' : ''}`} 
+                onClick={() => setIsSidebarOpen(false)} 
+            />
+
+            {/* Sidebar */}
+            <div className={`sidebar ${isSidebarOpen ? 'mobile-open' : 'mobile-closed'}`}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 35 }}>
+                    <h1 style={{ margin: 0, fontSize: 24, fontWeight: 900, background: 'linear-gradient(90deg, var(--primary-color), #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', display: 'flex', alignItems: 'center', gap: 10 }}>
+                        DeskTime Pro
+                    </h1>
+                    {/* Mobile Close Button */}
+                    <button 
+                        className="mobile-only-btn"
+                        onClick={() => setIsSidebarOpen(false)}
+                        style={{ background: 'transparent', border: 'none', color: 'var(--text-color)', cursor: 'pointer' }}
+                    >
+                        <X size={24} />
+                    </button>
+                </div>
+
+                <nav className="custom-scroll" style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1, overflowY: 'auto', paddingRight: 5 }}>
+                    <button className={`nav-item ${view === 'dashboard' ? 'active' : ''}`} onClick={() => { setView('dashboard'); setIsSidebarOpen(false); }}><LayoutDashboard size={18} /> Dashboard</button>
+                    <button className={`nav-item ${view === 'activities' ? 'active' : ''}`} onClick={() => { setView('activities'); setIsSidebarOpen(false); }}><Activity size={18} /> Apps & Activities</button>
+                    <button className={`nav-item ${view === 'screenshots' ? 'active' : ''}`} onClick={() => { setView('screenshots'); setIsSidebarOpen(false); }}><ImageIcon size={18} /> Screenshots</button>
+                    <button className={`nav-item ${view === 'flow' ? 'active' : ''}`} onClick={() => { setView('flow'); setIsSidebarOpen(false); }}><Waves size={18} /> Flow State Lab</button>
+                    <button className={`nav-item ${view === 'coworking' ? 'active' : ''}`} onClick={() => { setView('coworking'); setIsSidebarOpen(false); }}><Users size={18} /> Co-Working</button>
+                    <button className={`nav-item ${view === 'wellness' ? 'active' : ''}`} onClick={() => { setView('wellness'); setIsSidebarOpen(false); }}><Heart size={18} /> Wellness</button>
+                    <button className={`nav-item ${view === 'trophy' ? 'active' : ''}`} onClick={() => { setView('trophy'); setIsSidebarOpen(false); }}><Award size={18} /> Trophies</button>
+                    <button className={`nav-item ${view === 'timesheets' ? 'active' : ''}`} onClick={() => { setView('timesheets'); setIsSidebarOpen(false); }}><CalendarDays size={18} /> Timesheets</button>
+                    <button className={`nav-item ${view === 'tasks' ? 'active' : ''}`} onClick={() => { setView('tasks'); setIsSidebarOpen(false); }}><ListTodo size={18} /> Tasks & Projects</button>
+                    <button className={`nav-item ${view === 'billing' ? 'active' : ''}`} onClick={() => { setView('billing'); setIsSidebarOpen(false); }}><DollarSign size={18} /> Earnings</button>
+                    <button className={`nav-item ${view === 'leave' ? 'active' : ''}`} onClick={() => { setView('leave'); setIsSidebarOpen(false); }}><Calendar size={18} /> Leave Hub</button>
+                    <button className={`nav-item ${view === 'settings' ? 'active' : ''}`} onClick={() => { setView('settings'); setIsSidebarOpen(false); }}><SettingsIcon size={18} /> Settings</button>
                     {(state.user?.role === 'admin' || (state.user?.email && state.user.email.toLowerCase().includes('mdmiraj.paperles'))) && (
-                        <button style={navBtn(view === 'admin')} onClick={() => setView('admin')}><SettingsIcon size={20} /> Admin Panel</button>
+                        <button className={`nav-item ${view === 'admin' ? 'active' : ''}`} onClick={() => { setView('admin'); setIsSidebarOpen(false); }}><SettingsIcon size={18} /> Admin Panel</button>
                     )}
                 </nav>
 
                 {summary && summary.isTrackingActive ? (
-                    <div style={{ marginTop: 'auto', marginBottom: 20, padding: 15, background: 'rgba(0, 255, 0, 0.1)', borderRadius: 10, fontSize: 13, color: '#52c41a', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#52c41a', boxShadow: '0 0 10px #52c41a', animation: 'pulse 1.5s infinite' }}></span>
+                    <div style={{ marginTop: 20, marginBottom: 20, padding: '16px 20px', background: 'rgba(82, 196, 26, 0.1)', borderRadius: 14, fontSize: 13, color: '#52c41a', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 12, border: '1px solid rgba(82, 196, 26, 0.2)' }}>
+                        <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#52c41a', boxShadow: '0 0 12px #52c41a', animation: 'pulse 1.5s infinite' }}></span>
                         Live Tracking Active
                     </div>
                 ) : (
-                    <div style={{ marginTop: 'auto', marginBottom: 20, padding: 15, background: 'rgba(255, 0, 0, 0.1)', borderRadius: 10, fontSize: 13, color: '#ff4d4f', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ff4d4f' }}></span>
+                    <div style={{ marginTop: 20, marginBottom: 20, padding: '16px 20px', background: 'rgba(255, 77, 79, 0.1)', borderRadius: 14, fontSize: 13, color: '#ff4d4f', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 12, border: '1px solid rgba(255, 77, 79, 0.2)' }}>
+                        <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#ff4d4f' }}></span>
                         Tracking Paused
                     </div>
                 )}
 
                 <PomodoroWidget />
 
-                <button style={{ ...navBtn(false), color: '#ff4d4f' }} onClick={() => {
+                <button className="nav-item" style={{ color: '#ff4d4f', marginTop: 10, borderLeft: '3px solid transparent' }} onClick={() => {
                     dispatch({ type: 'LOGOUT' });
                     if (window.electronAPI) window.electronAPI.stopTracking();
-                }}><LogOut size={20} /> Logout</button>
+                }}><LogOut size={18} /> Secure Logout</button>
             </div>
 
             {/* Main Area */}
             <div className="content-area">
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 50, alignItems: 'center' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 40, alignItems: 'center', flexWrap: 'wrap', gap: 20 }}>
                     <div>
-                        <h3 style={{ margin: 0, color: 'gray', fontSize: 16 }}>{new Date(selectedDate || Date.now()).toLocaleDateString(undefined, { timeZone: 'UTC', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</h3>
-                        <h1 style={{ margin: '5px 0 0 0', fontSize: 28, fontWeight: 800 }}>Welcome back, <span style={{ color: 'var(--primary-color)' }}>{state.user?.name || 'Pro User'}</span>!</h1>
+                        <h3 style={{ margin: 0, color: 'gray', fontSize: 14, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 600 }}>{new Date(selectedDate || Date.now()).toLocaleDateString(undefined, { timeZone: 'UTC', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</h3>
+                        <h1 style={{ margin: '8px 0 0 0', fontSize: 32, fontWeight: 900, letterSpacing: -0.5 }}>Welcome back, <span style={{ color: 'var(--primary-color)' }}>{state.user?.name?.split(' ')[0] || 'Pro User'}</span>!</h1>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
                         {view === 'dashboard' && (
                             <input
                                 type="date"
-                                style={{ ...inputStyle, width: 'auto', padding: '8px 12px' }}
+                                style={{ ...inputStyle, width: 'auto', padding: '10px 15px', borderRadius: 12 }}
                                 value={selectedDate}
                                 onChange={(e) => setSelectedDate(e.target.value)}
                             />
                         )}
-                        <div style={{ width: 45, height: 45, borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary-color), #8b5cf6)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: 18 }}>
+                        <div style={{ width: 50, height: 50, borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary-color), #8b5cf6)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: 20, boxShadow: '0 5px 15px rgba(0,0,0,0.1)' }}>
                             {state.user?.name ? state.user.name.charAt(0).toUpperCase() : 'P'}
                         </div>
                     </div>

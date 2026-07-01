@@ -1,6 +1,7 @@
 const Screenshot = require('../models/Screenshot');
 const path = require('path');
 const { Op } = require('sequelize');
+const moment = require('moment-timezone');
 
 const asyncHandler = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
@@ -44,14 +45,20 @@ exports.uploadScreenshot = asyncHandler(async (req, res) => {
 });
 
 exports.getScreenshots = asyncHandler(async (req, res) => {
-    // Advanced: Find all screenshots for today
-    const today = new Date();
-    today.setHours(0,0,0,0);
+    // Determine the user's timezone from their settings, fallback to UTC
+    const userTimezone = req.user.settings?.timezone || 'UTC';
+    
+    // Get exact start and end of the day in the user's local timezone
+    const startOfDay = moment.tz(userTimezone).startOf('day').toDate();
+    const endOfDay = moment.tz(userTimezone).endOf('day').toDate();
     
     const screenshots = await Screenshot.findAll({
         where: {
             userId: req.user.id,
-            createdAt: { [Op.gte]: today }
+            createdAt: { 
+                [Op.gte]: startOfDay,
+                [Op.lte]: endOfDay
+            }
         },
         order: [['createdAt', 'DESC']]
     });
@@ -59,31 +66,36 @@ exports.getScreenshots = asyncHandler(async (req, res) => {
     res.status(200).json({ success: true, count: screenshots.length, data: screenshots });
 });
 
-// Helper for DeskTime categorization
-const categorizeApp = (windowTitle) => {
+// Helper for dynamic DeskTime categorization based on user profile settings
+const categorizeAppDynamic = (windowTitle, userSettings) => {
     if (!windowTitle) return 'Neutral';
     const title = windowTitle.toLowerCase();
     
-    const productiveApps = ['code', 'github', 'visual studio', 'cursor', 'postman', 'figma', 'notion', 'slack', 'jira', 'trello', 'word', 'excel'];
-    const unproductiveApps = ['youtube', 'facebook', 'twitter', 'netflix', 'instagram', 'reddit', 'tiktok', 'game', 'steam'];
+    const appCategories = userSettings?.appCategories || {};
     
-    for (let app of productiveApps) {
-        if (title.includes(app)) return 'Productive';
+    // Check if any of the user's configured app names are in the window title
+    for (const [keyword, category] of Object.entries(appCategories)) {
+        if (title.includes(keyword.toLowerCase())) {
+            // Capitalize to match expected 'Productive', 'Neutral', 'Unproductive' values
+            return category.charAt(0).toUpperCase() + category.slice(1);
+        }
     }
-    for (let app of unproductiveApps) {
-        if (title.includes(app)) return 'Unproductive';
-    }
+    
     return 'Neutral';
 };
 
 exports.getActivities = asyncHandler(async (req, res) => {
-    const today = new Date();
-    today.setHours(0,0,0,0);
+    const userTimezone = req.user.settings?.timezone || 'UTC';
+    const startOfDay = moment.tz(userTimezone).startOf('day').toDate();
+    const endOfDay = moment.tz(userTimezone).endOf('day').toDate();
     
     const screenshots = await Screenshot.findAll({
         where: {
             userId: req.user.id,
-            createdAt: { [Op.gte]: today },
+            createdAt: { 
+                [Op.gte]: startOfDay,
+                [Op.lte]: endOfDay 
+            },
             isIdle: false
         },
         attributes: ['activeWindow']
@@ -103,7 +115,7 @@ exports.getActivities = asyncHandler(async (req, res) => {
             appMap[simpleName] = { 
                 name: simpleName, 
                 minutes: 0, 
-                category: categorizeApp(simpleName) 
+                category: categorizeAppDynamic(simpleName, req.user.settings) 
             };
         }
         // Since we take a screenshot approx every 1 minute, we assume 1 record = 1 min

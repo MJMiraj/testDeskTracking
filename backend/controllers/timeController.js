@@ -1,5 +1,6 @@
 const TimeEntry = require('../models/TimeEntry');
 const { Op } = require('sequelize');
+const moment = require('moment-timezone');
 
 const asyncHandler = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
@@ -12,24 +13,15 @@ exports.getEntries = asyncHandler(async (req, res) => {
 });
 
 exports.getSummary = asyncHandler(async (req, res) => {
-    let now = new Date();
-    if (req.query.date) {
-        now = new Date(req.query.date);
-    }
+    const userTimezone = req.user.settings?.timezone || 'UTC';
     
-    const serverOffset = now.getTimezoneOffset();
-    const userOffset = req.query.tzOffset ? parseInt(req.query.tzOffset) : serverOffset;
+    // Use req.query.date if provided (e.g. "2026-07-01"), else current time in user tz
+    const targetDate = req.query.date ? moment.tz(req.query.date, userTimezone) : moment.tz(userTimezone);
     
-    // Calculate user's midnight in absolute time
-    let userLocalTime = new Date(now.getTime() + (serverOffset - userOffset) * 60000);
-    userLocalTime.setHours(0, 0, 0, 0);
-    let today = new Date(userLocalTime.getTime() - (serverOffset - userOffset) * 60000);
+    const today = targetDate.clone().startOf('day').toDate();
+    const tomorrow = targetDate.clone().add(1, 'days').startOf('day').toDate();
     
-    let tomorrow = new Date(today);
-    tomorrow.setDate(today.getDate() + 1);
-
-    const weekStart = new Date(today);
-    weekStart.setDate(today.getDate() - today.getDay());
+    const weekStart = targetDate.clone().startOf('week').toDate(); // usually Sunday
 
     const entries = await TimeEntry.findAll({ 
         where: { userId: req.user.id }
@@ -106,10 +98,9 @@ exports.getSummary = asyncHandler(async (req, res) => {
             productiveCount++;
         }
 
-        const ssDate = new Date(ss.createdAt);
-        const userDate = new Date(ssDate.getTime() + (serverOffset - userOffset) * 60000);
-        const hourIndex = userDate.getHours();
-        const minuteIndex = userDate.getMinutes();
+        const ssDate = moment(ss.createdAt).tz(userTimezone);
+        const hourIndex = ssDate.hour();
+        const minuteIndex = ssDate.minute();
 
         let status = 'unproductive';
         if (forcedStatus === 'neutral') {
@@ -135,10 +126,9 @@ exports.getSummary = asyncHandler(async (req, res) => {
         }
     });
 
-    const nowForData = new Date();
-    const userNowData = new Date(nowForData.getTime() + (serverOffset - userOffset) * 60000);
-    const currentHour = userNowData.getHours();
-    const currentMinute = userNowData.getMinutes();
+    const userNowData = moment.tz(userTimezone);
+    const currentHour = userNowData.hour();
+    const currentMinute = userNowData.minute();
 
     hourlyData.forEach((h, index) => {
         const total = h.idle + h.productive + h.unproductive;
@@ -197,8 +187,7 @@ exports.getSummary = asyncHandler(async (req, res) => {
         if (entryDate >= today) todaySeconds += entry.durationSeconds;
         if (entryDate >= weekStart) weekSeconds += entry.durationSeconds;
 
-        const userEntryDate = new Date(entryDate.getTime() + (serverOffset - userOffset) * 60000);
-        const dateString = userEntryDate.toISOString().split('T')[0];
+        const dateString = moment(entry.startTime).tz(userTimezone).format('YYYY-MM-DD');
         
         if (!dailyMap[dateString]) dailyMap[dateString] = 0;
         dailyMap[dateString] += entry.durationSeconds;
@@ -273,13 +262,14 @@ exports.addManualTime = asyncHandler(async (req, res) => {
 
     const Screenshot = require('../models/Screenshot');
     
-    // Construct exact start and end timestamps
-    const baseDate = new Date(date || new Date());
-    const start = new Date(baseDate);
-    start.setHours(parseInt(startHour), parseInt(startMinute), 0, 0);
-
-    const end = new Date(baseDate);
-    end.setHours(parseInt(endHour), parseInt(endMinute), 0, 0);
+    // Construct exact start and end timestamps in user's timezone
+    const userTimezone = req.user.settings?.timezone || 'UTC';
+    const dateStr = date || moment.tz(userTimezone).format('YYYY-MM-DD');
+    const startStr = `${dateStr} ${String(startHour).padStart(2, '0')}:${String(startMinute).padStart(2, '0')}`;
+    const endStr = `${dateStr} ${String(endHour).padStart(2, '0')}:${String(endMinute).padStart(2, '0')}`;
+    
+    const start = moment.tz(startStr, 'YYYY-MM-DD HH:mm', userTimezone).toDate();
+    const end = moment.tz(endStr, 'YYYY-MM-DD HH:mm', userTimezone).toDate();
 
     if (end < start) {
         return res.status(400).json({ success: false, message: 'End time must be after start time' });
