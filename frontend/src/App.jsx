@@ -1298,54 +1298,90 @@ const SettingsView = () => {
     };
 
     const themes = {
-        dark: { mode: 'dark', primaryColor: '#8b5cf6', backgroundColor: '#1a1a2e', textColor: '#ffffff' },
-        light: { mode: 'light', primaryColor: '#0088FE', backgroundColor: '#f4f7f6', textColor: '#333333' },
-        dracula: { mode: 'dracula', primaryColor: '#ff79c6', backgroundColor: '#282a36', textColor: '#f8f8f2' }
+        dark: { name: 'Dark Mode', mode: 'dark', primaryColor: '#8b5cf6', backgroundColor: '#1a1a2e', textColor: '#ffffff', emoji: '🌙' },
+        light: { name: 'Light Mode', mode: 'light', primaryColor: '#0088FE', backgroundColor: '#f4f7f6', textColor: '#333333', emoji: '☀️' },
+        dracula: { name: 'Dracula', mode: 'dracula', primaryColor: '#ff79c6', backgroundColor: '#282a36', textColor: '#f8f8f2', emoji: '🧛' },
+        desktime: { name: 'DeskTime Classic', mode: 'desktime', primaryColor: '#52c41a', backgroundColor: '#ffffff', textColor: '#333333', emoji: '⏱️' },
+        ocean: { name: 'Deep Ocean', mode: 'ocean', primaryColor: '#00d2ff', backgroundColor: '#0f2027', textColor: '#eeeeee', emoji: '🌊' },
+        forest: { name: 'Enchanted Forest', mode: 'forest', primaryColor: '#2eb62c', backgroundColor: '#142114', textColor: '#e6f0e6', emoji: '🌲' }
     };
 
     return (
-        <div className="fade-in">
-            <h2 style={{ fontSize: 28, fontWeight: 800 }}>Theme & Settings</h2>
-            <p style={{ color: 'gray', marginBottom: 30 }}>Customize your DeskTime Pro experience.</p>
-
-            <h4 style={{ marginBottom: 20 }}>Select Theme</h4>
-            <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
-                <div onClick={() => saveTheme(themes.dark)} style={themeCard(theme.mode === 'dark' ? 'var(--primary-color)' : 'transparent', '#1a1a2e', '#fff')}>
-                    <div style={{ fontSize: 40, marginBottom: 10 }}>🌙</div>
-                    Dark Mode
+        <div className="fade-in" style={{ paddingBottom: 50 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 30 }}>
+                <div>
+                    <h2 style={{ fontSize: 32, fontWeight: 800, margin: 0, background: `linear-gradient(90deg, ${theme.primaryColor}, #fff)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Settings & Themes</h2>
+                    <p style={{ color: 'gray', margin: '5px 0 0 0' }}>Personalize your tracking experience and UI.</p>
                 </div>
-                <div onClick={() => saveTheme(themes.light)} style={themeCard(theme.mode === 'light' ? 'var(--primary-color)' : 'transparent', '#f0f2f5', '#333')}>
-                    <div style={{ fontSize: 40, marginBottom: 10 }}>☀️</div>
-                    Light Mode
-                </div>
-                <div onClick={() => saveTheme(themes.dracula)} style={themeCard(theme.mode === 'dracula' ? 'var(--primary-color)' : 'transparent', '#282a36', '#f8f8f2')}>
-                    <div style={{ fontSize: 40, marginBottom: 10 }}>🧛</div>
-                    Dracula
-                </div>
+                <button style={{ ...btnStyle, padding: '10px 20px', borderRadius: 25 }} onClick={saveSettings}>
+                    <Sparkles size={16} style={{ marginRight: 8, verticalAlign: 'middle' }} /> 
+                    Save All Changes
+                </button>
             </div>
 
-            <div style={{ marginTop: 40 }}>
-                <h4 style={{ marginBottom: 20 }}>Tracking Preferences</h4>
-                <div style={{ ...cardStyle, display: 'flex', flexDirection: 'column', gap: 15 }}>
-                    <div style={{ display: 'flex', gap: 20 }}>
-                        <div style={{ flex: 1 }}>
-                            <label>Idle Timeout (Seconds)</label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 30 }}>
+                {/* Themes Section */}
+                <div style={{ ...cardStyle }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+                        <ImageIcon size={20} color={theme.primaryColor} />
+                        <h3 style={{ margin: 0 }}>Appearance</h3>
+                    </div>
+                    
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 20 }}>
+                        {Object.values(themes).map((t) => (
+                            <div 
+                                key={t.mode}
+                                onClick={() => saveTheme(t)} 
+                                style={{ 
+                                    ...themeCard(theme.mode === t.mode ? t.primaryColor : 'transparent', t.backgroundColor, t.textColor),
+                                    position: 'relative',
+                                    transform: theme.mode === t.mode ? 'translateY(-5px)' : 'none',
+                                    transition: 'all 0.3s ease',
+                                    boxShadow: theme.mode === t.mode ? `0 10px 20px ${t.primaryColor}40` : '0 4px 10px rgba(0,0,0,0.1)'
+                                }}
+                            >
+                                {theme.mode === t.mode && (
+                                    <div style={{ position: 'absolute', top: 10, right: 10, color: t.primaryColor }}>
+                                        <Target size={20} />
+                                    </div>
+                                )}
+                                <div style={{ fontSize: 40, marginBottom: 15 }}>{t.emoji}</div>
+                                <div style={{ fontSize: 16 }}>{t.name}</div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* DeskTime Settings Section */}
+                <div style={{ ...cardStyle }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+                        <Timer size={20} color={theme.primaryColor} />
+                        <h3 style={{ margin: 0 }}>DeskTime Tracking Rules</h3>
+                    </div>
+                    
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 20, marginBottom: 30 }}>
+                        <div style={{ background: 'rgba(255,255,255,0.02)', padding: 20, borderRadius: 12, border: '1px solid rgba(255,255,255,0.05)' }}>
+                            <label style={{ display: 'block', marginBottom: 10, fontWeight: 'bold' }}><Coffee size={16} style={{verticalAlign:'middle', marginRight: 5}}/> Idle Timeout (Seconds)</label>
                             <input type="number" style={inputStyle} value={idleTimeout} onChange={e => setIdleTimeout(Number(e.target.value))} />
+                            <small style={{ color: 'gray', display: 'block', marginTop: 8 }}>Time before you are marked as idle/away.</small>
                         </div>
-                        <div style={{ flex: 1 }}>
-                            <label>Hourly Rate ($)</label>
+                        <div style={{ background: 'rgba(255,255,255,0.02)', padding: 20, borderRadius: 12, border: '1px solid rgba(255,255,255,0.05)' }}>
+                            <label style={{ display: 'block', marginBottom: 10, fontWeight: 'bold' }}><DollarSign size={16} style={{verticalAlign:'middle', marginRight: 5}}/> Hourly Rate ($)</label>
                             <input type="number" style={inputStyle} value={hourlyRate} onChange={e => setHourlyRate(Number(e.target.value))} />
+                            <small style={{ color: 'gray', display: 'block', marginTop: 8 }}>Used to calculate your daily earnings.</small>
                         </div>
-                        <div style={{ flex: 1 }}>
-                            <label>Daily Goal (Hours)</label>
+                        <div style={{ background: 'rgba(255,255,255,0.02)', padding: 20, borderRadius: 12, border: '1px solid rgba(255,255,255,0.05)' }}>
+                            <label style={{ display: 'block', marginBottom: 10, fontWeight: 'bold' }}><Target size={16} style={{verticalAlign:'middle', marginRight: 5}}/> Daily Goal (Hours)</label>
                             <input type="number" style={inputStyle} value={dailyGoal} onChange={e => setDailyGoal(Number(e.target.value))} />
+                            <small style={{ color: 'gray', display: 'block', marginTop: 8 }}>Target productive hours per day.</small>
                         </div>
                     </div>
 
-                    <label>App Categorization (JSON format)</label>
-                    <textarea style={{ ...inputStyle, height: 150, fontFamily: 'monospace' }} value={categoriesStr} onChange={e => setCategoriesStr(e.target.value)}></textarea>
-
-                    <button style={{ ...btnStyle, alignSelf: 'flex-start' }} onClick={saveSettings}>Save Preferences</button>
+                    <div style={{ background: 'rgba(255,255,255,0.02)', padding: 20, borderRadius: 12, border: '1px solid rgba(255,255,255,0.05)' }}>
+                        <label style={{ display: 'block', marginBottom: 10, fontWeight: 'bold' }}><ListTodo size={16} style={{verticalAlign:'middle', marginRight: 5}}/> App Categorization (JSON)</label>
+                        <p style={{ color: 'gray', fontSize: 13, marginBottom: 15 }}>Map app names (lowercase) to categories: "productive", "neutral", "unproductive".</p>
+                        <textarea style={{ ...inputStyle, height: 180, fontFamily: 'monospace', backgroundColor: 'rgba(0,0,0,0.2)' }} value={categoriesStr} onChange={e => setCategoriesStr(e.target.value)}></textarea>
+                    </div>
                 </div>
             </div>
         </div>
